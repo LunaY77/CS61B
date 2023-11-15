@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author A
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -114,6 +114,81 @@ public class Model extends Observable {
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
 
+        // 设置面板的方向
+        board.setViewingPerspective(side);
+
+        for (int col = 0; col < board.size(); col++) {
+
+
+            // 初始化mergeRow, 保存merge的位置
+            int mergeRow = board.size();
+
+            // 从上至下循环column，上数第二个开始
+            for (int row = board.size() - 2; row >= 0; row--) {
+                // 从上到下循环，不是null就move，
+                // move到的位置是null，就tile.move （内置于board.move中） return false
+                // 有相等value就merge，return true
+
+                // 初始化isMerge，用于判断是否已有至少一次merge
+                boolean isMerge = false;
+
+                // 初始化当前tile
+                Tile tile = board.tile(col, row);
+
+                // 初始化emptyMove, 确保至少有一次merge后可以进行move
+                boolean emptyMove = false;
+
+                // 初始化一个Tile， 用来存储最后一个空位
+                int lastEmptyRow = row;
+
+                // 首先判断tile是否为null
+                if (tile != null) {
+                    // 从当前位置往上查找，判断是否有相等value || 是否有空位 null
+                    for (int reverse = row + 1; reverse < mergeRow; reverse++) {
+                        // 初始化移动后坐标
+                        Tile targetTile = board.tile(col, reverse);
+
+                        // 判断是否有相等value || 是否为null
+                        if (targetTile == null || targetTile.value() == tile.value()) {
+                            // 判断是否已经merge至少一次
+                            if (isMerge) {
+                                // 寻找最后一个空位
+                                lastEmptyRow = reverse;
+                                emptyMove = true;
+                            } else if (!isMerge){
+                                // 寻找相等value的 Tile
+                                if (targetTile != null) {
+                                    isMerge = board.move(col, reverse, tile);
+                                    changed = true;
+                                    mergeRow = reverse;
+                                    this.score += 2 * tile.value();
+                                }
+
+                                // 若找不到，则寻找最后一个空位
+                                lastEmptyRow = reverse;
+                            }
+
+
+
+
+
+                        }
+                    }
+                    // 判断是否merge，如果未merge则移动tile到lastEmptyTile的位置
+                    if (!isMerge) {
+                        board.move(col, lastEmptyRow, tile);
+                        changed = true;
+                    }
+                    // 如果已merge，且emptyMove为true，移动tile到lastEmpty的位置
+                    else if(isMerge && emptyMove) {
+                        board.move(col, lastEmptyRow, tile);
+                        changed = true;
+                    }
+                }
+            }
+        }
+        board.setViewingPerspective(Side.NORTH);
+
         checkGameOver();
         if (changed) {
             setChanged();
@@ -138,6 +213,11 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        for (Tile tile : b) {
+            if(tile == null) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -148,6 +228,13 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
+        for (Tile tile : b) {
+            if(tile != null) {
+                if (tile.value() == MAX_PIECE) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -159,6 +246,43 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
+        if (emptySpaceExists(b)) {
+            return true;
+        }
+
+        Integer topLeft = b.tile(0, b.size() - 1).value();
+        Integer bottomLeft = b.tile(0, 0).value();
+        Integer bottomRight = b.tile(b.size() - 1, 0).value();
+        Integer topRight = b.tile(b.size() - 1, b.size() - 1).value();
+
+        if (topLeft.equals(b.tile(1, b.size() - 1).value())
+                || topLeft.equals(b.tile(0, b.size() - 2).value())
+
+                || bottomLeft.equals(b.tile(1, 0).value())
+                || bottomLeft.equals(b.tile(0, 1).value())
+
+                || bottomRight.equals(b.tile(b.size() - 2, 0).value())
+                || bottomRight.equals(b.tile(b.size() - 1, 1).value())
+
+                || topRight.equals(b.tile(b.size() - 2, b.size() - 1).value())
+                || topRight.equals(b.tile(b.size() - 1, b.size() - 2).value())
+        ) {
+            return true;
+        }
+
+        for (int col = 1; col < b.size() - 1; col++) {
+            for (int row = 1; row < b.size() - 1; row++) {
+                Integer value = b.tile(col, row).value();
+
+                if (value.equals(b.tile(col + 1, row).value())
+                    || value.equals(b.tile(col - 1, row).value())
+                    || value.equals(b.tile(col, row + 1).value())
+                    || value.equals(b.tile(col, row - 1).value())
+                ){
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
