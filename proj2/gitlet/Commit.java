@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import static gitlet.Utils.serialize;
+import static gitlet.Utils.sha1;
+
 /**
  * Represents a gitlet commit object.
  *  does at a high level.
@@ -52,14 +55,23 @@ public class Commit implements Serializable {
     /**
      * 初始提交
      */
-    public Commit(String message, String parentId) {
+    public Commit(String message, Commit parentCommit, Date createTime) {
         this.message = message;
-        // Unix 纪元时间
-        this.creatTime = new Date(0L);
+        this.creatTime = createTime;
         tree = new HashMap<>();
-        if (parentId != null) {
-            // todo
+        if (parentCommit != null) {
+            this.parentId1 = parentCommit.getKey();
+            tree.putAll(parentCommit.getTree());
         }
+    }
+
+    /**
+     * 初始提交
+     * @return commit
+     */
+    public static Commit initialCommit() {
+        // 初始提交，Unix 纪元时间
+        return new Commit("initial commit", null, new Date(0L));
     }
 
     public Map<String, String> getTree() {
@@ -81,4 +93,9 @@ public class Commit implements Serializable {
     public void setMessage(String message) {
         this.message = message;
     }
+
+    public String getKey() {
+        return sha1(serialize(this));
+    }
+
 }

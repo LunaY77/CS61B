@@ -34,6 +34,9 @@ public class Main {
         }
     }
 
+    /**
+     * commit
+     */
     private static void commit(String[] args) {
         checkRepositoryExists();
         if (args.length != 2) {
@@ -43,9 +46,12 @@ public class Main {
         if (Utils.isBlank(message)) {
             throw Utils.error("Please enter a commit message.");
         }
-//        Repository.commit(message);
+        Repository.commit(message);
     }
 
+    /**
+     * add
+     */
     private static void add(String[] args) {
         checkRepositoryExists();
         if (args.length != 2) {
@@ -54,15 +60,24 @@ public class Main {
         Repository.add(args[1]);
     }
 
+    /**
+     * init
+     */
     private static void init() {
         Repository.init();
     }
 
+    /**
+     * 命令格式错误
+     */
     private static void errorOperands() {
         Utils.message("Incorrect operands.");
         System.exit(0);
     }
 
+    /**
+     * 校验是否存在.gitlet目录
+     */
     private static void checkRepositoryExists() {
         // 不在初始化 gitlet 工作目录
         if (!GITLET_DIR.exists()) {

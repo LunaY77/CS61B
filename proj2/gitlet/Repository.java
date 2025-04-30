@@ -1,7 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.util.Objects;
+import java.util.Date;
 
 import static gitlet.Constant.*;
 import static gitlet.Utils.*;
@@ -32,18 +32,35 @@ public class Repository {
         mkdir(GITLET_DIR);
         // 创建 obj 文件夹
         mkdir(OBJECTS_DIR);
+        // 创建 refs 文件夹及其子文件夹
+        mkdir(REFS_DIR);
+        mkdir(HEADS_DIR);
         // 创建 stage 文件
+        initStage();
+        // 初始提交，初始化分支
+        initialCommitAndBranch();
+    }
+
+    /**
+     * 初始化暂存区
+     */
+    private static void initStage() {
         Stage stage = new Stage();
         saveStage(stage);
-        // todo initial commit
-        // todo master branch
-
     }
 
+    /**
+     * 保存 commit
+     * @param commit {@link Commit}
+     */
     public static void saveCommit(Commit commit) {
-        writeObject(join(GITLET_DIR, sha1(commit)), commit);
+        writeObject(join(OBJECTS_DIR, commit.getKey()), commit);
     }
 
+    /**
+     * 保存 stage
+     * @param stage {@link Stage}
+     */
     public static void saveStage(Stage stage) {
         writeObject(STAGE, stage);
     }
@@ -82,8 +99,40 @@ public class Repository {
         writeObject(join(OBJECTS_DIR, key), blob);
     }
 
-    public static void commit(Commit commit) {
-        // todo
+    /**
+     * commit 将暂存区文件提交
+     * @param message commit message
+     */
+    public static void commit(String message) {
+        // 暂存区中无文件
+        Stage stage = getStage();
+        if (stage.isEmpty()) {
+            throw error("No changes added to the commit.");
+        }
+        // 创建新的commit
+        Commit commit = new Commit(message, getCurrCommit(), new Date());
+        // 添加暂存区文件
+        commit.getTree().putAll(stage.getAddFiles());
+        // 删除暂存区中标记删除的文件
+        for (String key : stage.getRemoveFiles().keySet()) {
+            commit.getTree().remove(key);
+        }
+        // 保存 commit
+        saveCommit(commit);
+        // 清空暂存区
+        stage.clear();
+    }
+
+    /**
+     * 初始提交 + 初始化分支
+     */
+    private static void initialCommitAndBranch() {
+        // 初始提交
+        Commit commit = Commit.initialCommit();
+        saveCommit(commit);
+        // 初始化分支
+        writeContents(HEAD, "master");
+        writeContents(join(HEADS_DIR, "master"), commit.getKey());
     }
 
     /**
