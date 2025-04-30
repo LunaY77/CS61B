@@ -269,4 +269,30 @@ class Utils {
         System.out.printf(msg, args);
         System.out.println();
     }
+
+    static boolean isBlank(CharSequence str) {
+        int length;
+        if (str != null && (length = str.length()) != 0) {
+            for(int i = 0; i < length; ++i) {
+                if (!isBlankChar(str.charAt(i))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    static boolean isNotBlank(CharSequence str) {
+        return !isBlank(str);
+    }
+
+    private static boolean isBlankChar(int c) {
+        return Character.isWhitespace(c) || Character.isSpaceChar(c) || c == 65279 || c == 8234 || c == 0 || c == 12644 || c == 10240 || c == 6158;
+    }
+
+    static void mkdir(File dir) {
+        if (!dir.mkdir()) {
+            throw error("Failed to create directory, path: %s", dir.getPath());
+        }
+    }
 }

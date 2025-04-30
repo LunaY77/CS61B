@@ -1,5 +1,7 @@
 package gitlet;
 
+import static gitlet.Constant.GITLET_DIR;
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author TODO
  */
@@ -11,7 +13,7 @@ public class Main {
     public static void main(String[] args) {
         // 参数为空
         if (args.length == 0) {
-            System.out.println("Please enter a command.");
+            Utils.message("Please enter a command.");
             return;
         }
         String firstArg = args[0];
@@ -21,13 +23,27 @@ public class Main {
                 init();
                 break;
             case "add":
-                // TODO: handle the `add [filename]` command
                 add(args);
+                break;
+            case "commit":
+                commit(args);
                 break;
             // TODO: FILL THE REST IN
             default:
-                System.out.println("No command with that name exists.");
+                Utils.message("No command with that name exists.");
         }
+    }
+
+    private static void commit(String[] args) {
+        checkRepositoryExists();
+        if (args.length != 2) {
+            errorOperands();
+        }
+        String message = args[1];
+        if (Utils.isBlank(message)) {
+            throw Utils.error("Please enter a commit message.");
+        }
+//        Repository.commit(message);
     }
 
     private static void add(String[] args) {
@@ -43,14 +59,14 @@ public class Main {
     }
 
     private static void errorOperands() {
-        System.out.println("Incorrect operands.");
+        Utils.message("Incorrect operands.");
         System.exit(0);
     }
 
     private static void checkRepositoryExists() {
         // 不在初始化 gitlet 工作目录
-        if (!Repository.GITLET_DIR.exists()) {
-            System.out.println("Not in an initialized Gitlet directory.");
+        if (!GITLET_DIR.exists()) {
+            Utils.message("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
     }
