@@ -220,7 +220,7 @@ public class Repository {
     public static void log() {
         Commit commit = getCurrCommit();
         while (commit != null) {
-            System.out.println(commit);
+            message("%s", commit);
             commit = getCommit(commit.getFirstParentKey());
         }
     }
@@ -231,7 +231,25 @@ public class Repository {
     public static void globalLog() {
         List<String> commitKeys = plainFilenamesIn(COMMITS_DIR);
         for (String commitKey : commitKeys) {
-            System.out.println(getCommit(commitKey));
+            message("%s", getCommit(commitKey));
+        }
+    }
+
+    /**
+     * find 找到指定提交消息的 CommitId
+     * @param message 提交消息
+     */
+    public static void find(String message) {
+        List<String> commitKeys = plainFilenamesIn(COMMITS_DIR);
+        boolean exist = false;
+        for (String commitKey : commitKeys) {
+            if (getCommit(commitKey).getMessage().equals(message)) {
+                message("%s", commitKey);
+                exist = true;
+            }
+        }
+        if (!exist) {
+            throw error("Found no commit with that message.");
         }
     }
 }

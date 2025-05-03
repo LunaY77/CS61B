@@ -37,9 +37,18 @@ public class Main {
             case "global-log":
                 globalLog(args);
                 break;
+            case "find":
+                find(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
         }
+    }
+
+    private static void find(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 2);
+        Repository.find(args[1]);
     }
 
     /**
