@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.util.Date;
+import java.util.List;
 
 import static gitlet.Constant.*;
 import static gitlet.Utils.*;
@@ -13,11 +14,12 @@ import static gitlet.Utils.*;
  *  <br>
  * .gitlet
  * ├── objects
- *     ├── commit
- *     └── blob
+ *     ├── commits
+ *     └── blobs
  * └── refs
  *     ├── branch
  * └── stage
+ * └── HEAD
  * @author 苍镜月
  */
 public class Repository {
@@ -30,8 +32,10 @@ public class Repository {
         }
         // 创建.gitlet文件夹
         mkdir(GITLET_DIR);
-        // 创建 obj 文件夹
+        // 创建 obj 文件夹及其子文件夹
         mkdir(OBJECTS_DIR);
+        mkdir(COMMITS_DIR);
+        mkdir(BLOBS_DIR);
         // 创建 refs 文件夹及其子文件夹
         mkdir(REFS_DIR);
         mkdir(HEADS_DIR);
@@ -54,7 +58,7 @@ public class Repository {
      * @param commit {@link Commit}
      */
     public static void saveCommit(Commit commit) {
-        writeObject(join(OBJECTS_DIR, commit.getKey()), commit);
+        writeObject(join(COMMITS_DIR, commit.getKey()), commit);
     }
 
     /**
@@ -96,7 +100,7 @@ public class Repository {
      */
     private static void createAndSaveBlob(String key, byte[] fileContent) {
         Blob blob = new Blob(key, fileContent);
-        writeObject(join(OBJECTS_DIR, key), blob);
+        writeObject(join(BLOBS_DIR, key), blob);
     }
 
     /**
@@ -155,7 +159,7 @@ public class Repository {
      */
     private static Commit getCurrCommit() {
         String currCommitId = getCurrCommitId();
-        return readObject(join(OBJECTS_DIR, currCommitId), Commit.class);
+        return readObject(join(COMMITS_DIR, currCommitId), Commit.class);
     }
 
     /**
@@ -167,7 +171,7 @@ public class Repository {
         if (commitId == null) {
             return null;
         }
-        return readObject(join(OBJECTS_DIR, commitId), Commit.class);
+        return readObject(join(COMMITS_DIR, commitId), Commit.class);
     }
 
     /**
@@ -218,6 +222,16 @@ public class Repository {
         while (commit != null) {
             System.out.println(commit);
             commit = getCommit(commit.getFirstParentKey());
+        }
+    }
+
+    /**
+     * global-log 全局日志
+     */
+    public static void globalLog() {
+        List<String> commitKeys = plainFilenamesIn(COMMITS_DIR);
+        for (String commitKey : commitKeys) {
+            System.out.println(getCommit(commitKey));
         }
     }
 }

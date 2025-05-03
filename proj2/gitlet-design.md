@@ -25,18 +25,12 @@
 ## Persistence
 
 ```
-.gitlet/
-    - objects/
-        - commits/
-            - ...(files of commits)
-        - blobs/
-            - ...(files of blobs)
-    - branches/
-    - master
-        - ...(other branches)
-    - HEAD
-    - BRANCH
-    - Stages/
-        - addStage
-        - removeStage
+.gitlet
+├── objects
+    ├── commits
+    └── blobs
+└── refs
+    ├── branch
+└── stage
+└── HEAD
 ```

@@ -43,6 +43,16 @@ public interface Constant {
     File OBJECTS_DIR = join(GITLET_DIR, "objects");
 
     /**
+     * 存放 commit 的文件夹
+     */
+    File COMMITS_DIR = join(OBJECTS_DIR, "commits");
+
+    /**
+     * 存放 blob 的文件夹
+     */
+    File BLOBS_DIR = join(OBJECTS_DIR, "blobs");
+
+    /**
      * 引用文件夹
      */
     File REFS_DIR = join(GITLET_DIR, "refs");

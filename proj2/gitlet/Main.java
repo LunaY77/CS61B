@@ -34,9 +34,21 @@ public class Main {
             case "log":
                 log(args);
                 break;
+            case "global-log":
+                globalLog(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
         }
+    }
+
+    /**
+     * global args
+     */
+    private static void globalLog(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 1);
+        Repository.globalLog();
     }
 
     /**
