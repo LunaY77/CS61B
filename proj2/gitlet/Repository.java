@@ -84,7 +84,7 @@ public class Repository {
         // 如果不存在 blob 且无同一 hash 的 blob，则添加 blob
         Commit curCommit = getCurrCommit();
         String blobKey = curCommit.getTree().get(fileName);
-        if (blobKey == null || key.equals(curCommit.getTree().get(blobKey))) {
+        if (blobKey == null || !key.equals(curCommit.getTree().get(fileName))) {
             createAndSaveBlob(key, fileContent);
             stage.addFile(fileName, key);
         }
@@ -159,6 +159,18 @@ public class Repository {
     }
 
     /**
+     * 从 objects 文件夹下获取 Commit
+     * @param commitId commit key
+     * @return Commit
+     */
+    private static Commit getCommit(String commitId) {
+        if (commitId == null) {
+            return null;
+        }
+        return readObject(join(OBJECTS_DIR, commitId), Commit.class);
+    }
+
+    /**
      * 从 ref/heads 文件夹中获取当前 Commit ID
      * @return 当前 Commit ID
      */
@@ -188,13 +200,24 @@ public class Repository {
         if (stage.isAdded(fileName)) {
             stage.cancelAdd(fileName);
         }
-        if (commit.hasFile(fileName)) {
+        else if (commit.hasFile(fileName)) {
             stage.removeFile(fileName);
 
             File file = new File(fileName);
             if (file.exists()) {
                 file.delete();
             }
+        }
+    }
+
+    /**
+     * log 日志，从当前提交开始到初始提交
+     */
+    public static void log() {
+        Commit commit = getCurrCommit();
+        while (commit != null) {
+            System.out.println(commit);
+            commit = getCommit(commit.getFirstParentKey());
         }
     }
 }

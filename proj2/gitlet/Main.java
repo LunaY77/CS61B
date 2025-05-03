@@ -20,7 +20,7 @@ public class Main {
 
         switch(firstArg) {
             case "init":
-                init();
+                init(args);
                 break;
             case "add":
                 add(args);
@@ -31,9 +31,21 @@ public class Main {
             case "rm":
                 rm(args);
                 break;
+            case "log":
+                log(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
         }
+    }
+
+    /**
+     * log
+     */
+    private static void log(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 1);
+        Repository.log();
     }
 
     /**
@@ -70,7 +82,8 @@ public class Main {
     /**
      * init
      */
-    private static void init() {
+    private static void init(String[] args) {
+        checkOperands(args, 1);
         Repository.init();
     }
 

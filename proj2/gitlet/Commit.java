@@ -53,6 +53,11 @@ public class Commit implements Serializable {
     private Map<String, String> tree;
 
     /**
+     * commitKey
+     */
+    private String commitKey;
+
+    /**
      * 初始提交
      */
     public Commit(String message, Commit parentCommit, Date createTime) {
@@ -67,6 +72,7 @@ public class Commit implements Serializable {
 
     /**
      * 初始提交
+     *
      * @return commit
      */
     public static Commit initialCommit() {
@@ -95,21 +101,45 @@ public class Commit implements Serializable {
     }
 
     public String getKey() {
-        return sha1(serialize(this));
+        if (commitKey == null) {
+            commitKey = sha1(serialize(this));
+        }
+        return commitKey;
     }
 
     public boolean hasFile(String fileName) {
         return this.tree.containsKey(fileName);
     }
 
+    public boolean isMerge() {
+        return parentId1 != null && parentId2 != null;
+    }
+
+    public String getFirstParentKey() {
+        return parentId1;
+    }
+
+    public String getSecondParentKey() {
+        return parentId2;
+    }
+
     @Override
     public String toString() {
-        return "Commit{" +
-                "message='" + message + '\'' +
-                ", creatTime=" + creatTime +
-                ", parentId1='" + parentId1 + '\'' +
-                ", parentId2='" + parentId2 + '\'' +
-                ", tree=" + tree +
-                '}';
+        return isMerge() ? printMerge() : print();
+    }
+
+    private String print() {
+        return "===\n" +
+                "commit " + getKey() + "\n" +
+                "Date: " + getCreatTime() + "\n" +
+                getMessage() + "\n";
+    }
+
+    private String printMerge() {
+        return "===\n" +
+                "commit " + getKey() + "\n" +
+                "Merge: " + getFirstParentKey().substring(0, 8) + " " + getSecondParentKey().substring(0, 8) +
+                "Date: " + getCreatTime() + "\n" +
+                getMessage() + "\n";
     }
 }
