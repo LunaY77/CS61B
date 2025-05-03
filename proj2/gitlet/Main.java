@@ -28,10 +28,21 @@ public class Main {
             case "commit":
                 commit(args);
                 break;
-            // TODO: FILL THE REST IN
+            case "rm":
+                rm(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
         }
+    }
+
+    /**
+     * rm
+     */
+    private static void rm(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 2);
+        Repository.rm(args[1]);
     }
 
     /**
@@ -39,9 +50,7 @@ public class Main {
      */
     private static void commit(String[] args) {
         checkRepositoryExists();
-        if (args.length != 2) {
-            errorOperands();
-        }
+        checkOperands(args, 2);
         String message = args[1];
         if (Utils.isBlank(message)) {
             throw Utils.error("Please enter a commit message.");
@@ -54,9 +63,7 @@ public class Main {
      */
     private static void add(String[] args) {
         checkRepositoryExists();
-        if (args.length != 2) {
-            errorOperands();
-        }
+        checkOperands(args, 2);
         Repository.add(args[1]);
     }
 
@@ -70,9 +77,11 @@ public class Main {
     /**
      * 命令格式错误
      */
-    private static void errorOperands() {
-        Utils.message("Incorrect operands.");
-        System.exit(0);
+    private static void checkOperands(String[] args, int expectedLength) {
+        if (args.length != expectedLength) {
+            Utils.message("Incorrect operands.");
+            System.exit(0);
+        }
     }
 
     /**

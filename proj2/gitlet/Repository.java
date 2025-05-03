@@ -114,11 +114,13 @@ public class Repository {
         // 添加暂存区文件
         commit.getTree().putAll(stage.getAddFiles());
         // 删除暂存区中标记删除的文件
-        for (String key : stage.getRemoveFiles().keySet()) {
+        for (String key : stage.getRemoveFiles()) {
             commit.getTree().remove(key);
         }
         // 保存 commit
         saveCommit(commit);
+        // 更新 branch
+        saveBranch("master", commit.getKey());
         // 清空暂存区
         stage.clear();
     }
@@ -131,8 +133,12 @@ public class Repository {
         Commit commit = Commit.initialCommit();
         saveCommit(commit);
         // 初始化分支
-        writeContents(HEAD, "master");
-        writeContents(join(HEADS_DIR, "master"), commit.getKey());
+        saveBranch("master", commit.getKey());
+    }
+
+    public static void saveBranch(String branchName, String commitKey) {
+        writeContents(HEAD, branchName);
+        writeContents(join(HEADS_DIR, branchName), commitKey);
     }
 
     /**
@@ -167,5 +173,28 @@ public class Repository {
      */
     private static String getCurrBranch() {
         return readContentsAsString(HEAD);
+    }
+
+    /**
+     * rm 删除暂存区的文件或者已提交的文件
+     * @param fileName 文件名
+     */
+    public static void rm(String fileName) {
+        Stage stage = getStage();
+        Commit commit = getCurrCommit();
+        if (!stage.isAdded(fileName) && !commit.hasFile(fileName)) {
+            throw error("No reason to remove the file.");
+        }
+        if (stage.isAdded(fileName)) {
+            stage.cancelAdd(fileName);
+        }
+        if (commit.hasFile(fileName)) {
+            stage.removeFile(fileName);
+
+            File file = new File(fileName);
+            if (file.exists()) {
+                file.delete();
+            }
+        }
     }
 }

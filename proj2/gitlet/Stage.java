@@ -1,7 +1,9 @@
 package gitlet;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,11 +16,11 @@ public class Stage implements Serializable {
 
     private final Map<String, String> addFiles;
 
-    private final Map<String, String> removeFiles;
+    private final List<String> removeFiles;
 
     public Stage() {
         addFiles = new HashMap<>();
-        removeFiles = new HashMap<>();
+        removeFiles = new ArrayList<>();
     }
 
     /**
@@ -30,6 +32,26 @@ public class Stage implements Serializable {
         addFiles.put(fileName, hash);
         Repository.saveStage(this);
     }
+
+    /**
+     * 删除暂存区中的添加
+     *
+     * @param fileName 文件名
+     */
+    public void cancelAdd(String fileName) {
+        addFiles.remove(fileName);
+        Repository.saveStage(this);
+    }
+
+    /**
+     * 文件是否添加到暂存区
+     * @param fileName 文件名
+     * @return 是否添加
+     */
+    public boolean isAdded(String fileName) {
+        return addFiles.containsKey(fileName);
+    }
+
 
     /**
      * 暂存区是否为空
@@ -52,7 +74,24 @@ public class Stage implements Serializable {
         return addFiles;
     }
 
-    public Map<String, String> getRemoveFiles() {
+    public List<String> getRemoveFiles() {
         return removeFiles;
+    }
+
+    /**
+     * 标记删除
+     * @param fileName 文件名
+     */
+    public void removeFile(String fileName) {
+        removeFiles.add(fileName);
+        Repository.saveStage(this);
+    }
+
+    @Override
+    public String toString() {
+        return "Stage{" +
+                "addFiles=" + addFiles +
+                ", removeFiles=" + removeFiles +
+                '}';
     }
 }

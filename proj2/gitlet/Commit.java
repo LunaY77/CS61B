@@ -98,4 +98,18 @@ public class Commit implements Serializable {
         return sha1(serialize(this));
     }
 
+    public boolean hasFile(String fileName) {
+        return this.tree.containsKey(fileName);
+    }
+
+    @Override
+    public String toString() {
+        return "Commit{" +
+                "message='" + message + '\'' +
+                ", creatTime=" + creatTime +
+                ", parentId1='" + parentId1 + '\'' +
+                ", parentId2='" + parentId2 + '\'' +
+                ", tree=" + tree +
+                '}';
+    }
 }
