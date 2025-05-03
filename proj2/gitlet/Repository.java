@@ -252,4 +252,40 @@ public class Repository {
             throw error("Found no commit with that message.");
         }
     }
+
+    /**
+     * status 当前分支状态
+     */
+    public static void status() {
+        Stage stage = getStage();
+
+        // Branches
+        String currBranch = getCurrBranch();
+        List<String> branches = plainFilenamesIn(HEADS_DIR);
+        message("%s", "=== Branches ===");
+        for (String branch : branches) {
+            if (branch.equals(currBranch)) {
+                message("*%s", branch);
+            } else {
+                message("%s", branch);
+            }
+        }
+        System.out.println();
+
+        // Staged Files
+        message("%s", "=== Staged Files ===");
+        for (String filePath : stage.getAddFiles().keySet()) {
+            message("%s", filePath);
+        }
+        System.out.println();
+
+        // Removed Files
+        message("%s", "=== Removed Files ===");
+        stage.getRemoveFiles().forEach(System.out::println);
+        System.out.println();
+
+        // todo === Modifications Not Staged For Commit ===
+
+        // todo Untracked Files
+    }
 }

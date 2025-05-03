@@ -40,11 +40,27 @@ public class Main {
             case "find":
                 find(args);
                 break;
+            case "status":
+                status(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
         }
     }
 
+    /**
+     * status
+     */
+    private static void status(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 1);
+        Repository.status();
+    }
+
+    /**
+     * find
+     * @param args
+     */
     private static void find(String[] args) {
         checkRepositoryExists();
         checkOperands(args, 2);
