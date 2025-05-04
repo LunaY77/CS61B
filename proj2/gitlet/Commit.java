@@ -5,13 +5,10 @@ package gitlet;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
-import static gitlet.Utils.serialize;
-import static gitlet.Utils.sha1;
+import static gitlet.Constant.BLOBS_DIR;
+import static gitlet.Utils.*;
 
 /**
  * Represents a gitlet commit object.
@@ -111,6 +108,10 @@ public class Commit implements Serializable {
         return this.tree.containsKey(fileName);
     }
 
+    public String getBlobKey(String fileName) {
+        return this.tree.get(fileName);
+    }
+
     public boolean isMerge() {
         return parentId1 != null && parentId2 != null;
     }
@@ -141,5 +142,11 @@ public class Commit implements Serializable {
                 "Merge: " + getFirstParentKey().substring(0, 8) + " " + getSecondParentKey().substring(0, 8) +
                 "Date: " + getCreatTime() + "\n" +
                 getMessage() + "\n";
+    }
+
+    public Blob getBlob(String fileName) {
+        String blobKey = getBlobKey(fileName);
+        if (blobKey == null) return null;
+        return readObject(join(BLOBS_DIR, blobKey), Blob.class);
     }
 }

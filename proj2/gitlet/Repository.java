@@ -1,8 +1,12 @@
 package gitlet;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import static gitlet.Constant.*;
 import static gitlet.Utils.*;
@@ -88,18 +92,20 @@ public class Repository {
         // 如果不存在 blob 且无同一 hash 的 blob，则添加 blob
         Commit curCommit = getCurrCommit();
         String blobKey = curCommit.getTree().get(fileName);
-        if (blobKey == null || !key.equals(curCommit.getTree().get(fileName))) {
-            createAndSaveBlob(key, fileContent);
+        if (blobKey == null || !key.equals(curCommit.getBlobKey(fileName))) {
+            createAndSaveBlob(key, fileContent, fileName);
             stage.addFile(fileName, key);
         }
     }
 
     /**
      * 创建并保存 Blob
+     *
      * @param fileContent 文件内容
+     * @param fileName 文件名
      */
-    private static void createAndSaveBlob(String key, byte[] fileContent) {
-        Blob blob = new Blob(key, fileContent);
+    private static void createAndSaveBlob(String key, byte[] fileContent, String fileName) {
+        Blob blob = new Blob(key, fileContent, fileName);
         writeObject(join(BLOBS_DIR, key), blob);
     }
 
@@ -126,7 +132,7 @@ public class Repository {
         // 更新 branch
         saveBranch("master", commit.getKey());
         // 清空暂存区
-        stage.clear();
+        cleanStage();
     }
 
     /**
@@ -171,7 +177,23 @@ public class Repository {
         if (commitId == null) {
             return null;
         }
+        List<String> matchingCommits = findMatchingCommits(commitId);
+        // 如果文件不止一个 或者 文件不存在
+        if (matchingCommits.size() != 1 || !join(COMMITS_DIR, matchingCommits.get(0)).exists()) {
+            throw error("No commit with that id exists.");
+        }
         return readObject(join(COMMITS_DIR, commitId), Commit.class);
+    }
+
+    private static List<String> findMatchingCommits(String prefix) {
+        List<String> commitKeys = plainFilenamesIn(COMMITS_DIR);
+        List<String> res = new ArrayList<>();
+        for (String commitKey : commitKeys) {
+            if (commitKey.startsWith(prefix)) {
+                res.add(commitKey);
+            }
+        }
+        return res;
     }
 
     /**
@@ -189,6 +211,19 @@ public class Repository {
      */
     private static String getCurrBranch() {
         return readContentsAsString(HEAD);
+    }
+
+    /**
+     * 根据分支名获取分支
+     * @param branchName 分支名
+     * @return Head Commit Key
+     */
+    private static String getBranch(String branchName) {
+        List<String> branches = plainFilenamesIn(HEADS_DIR);
+        if (branches == null || branches.stream().noneMatch(b -> b.equals(branchName))) {
+            throw error("No such branch exists.");
+        }
+        return readContentsAsString(join(HEADS_DIR, branchName));
     }
 
     /**
@@ -285,7 +320,94 @@ public class Repository {
         System.out.println();
 
         // todo === Modifications Not Staged For Commit ===
+        message("%s", "=== Modifications Not Staged For Commit ===");
+        System.out.println();
 
-        // todo Untracked Files
+        // todo === Untracked Files ===
+        message("%s", "=== Untracked Files ===");
+        System.out.println();
+    }
+
+    /**
+     * checkout -- [file name]
+     * checkout [commit id] -- [file name]
+     * @param commitId 提交 key
+     * @param fileName 文件名
+     */
+    public static void checkoutCommit(String commitId, String fileName) {
+        Commit commit = Optional.ofNullable(commitId)
+                .map(Repository::getCommit)
+                .orElseGet(Repository::getCurrCommit);
+        Blob blob = commit.getBlob(fileName);
+        if (blob == null) {
+            throw error("File does not exist in that commit.");
+        }
+        writeBlobToCWD(blob);
+    }
+
+    /**
+     * 将 Blob 写入到工作目录
+     * @param blob Blob
+     */
+    private static void writeBlobToCWD(Blob blob) {
+        File file = join(CWD, blob.getFileName());
+        writeContents(file, new String(blob.getContent(), StandardCharsets.UTF_8));
+    }
+
+    /**
+     * checkout [branch name]
+     * @param branchName 分支名称
+     */
+    public static void checkoutBranch(String branchName) {
+        String currBranch = getCurrBranch();
+        // checkout 当前分支
+        if (currBranch.equals(branchName)) {
+            message("%s", "No need to checkout the current branch.");
+            return;
+        }
+        // 找到对应的分支Head
+        String commitKey = getBranch(branchName);
+        Commit targetCommit = getCommit(commitKey);
+        Commit currCommit = getCurrCommit();
+
+        // 如果工作目录中存在一个未跟踪的文件，且目标分支中也存在
+        for (String fileName : targetCommit.getTree().keySet()) {
+            if (!currCommit.hasFile(fileName) && join(CWD, fileName).exists()) {
+                throw error("There is an untracked file in the way; delete it, or add and commit it first.");
+            }
+        }
+
+        // checkout
+        saveBranch(branchName, commitKey);
+        checkout(currCommit, targetCommit);
+    }
+
+    /**
+     * checkout 从 from 分支 到 to 分支
+     * @param from from commit
+     * @param to to commit
+     */
+    private static void checkout(Commit from, Commit to) {
+        // 删除 from 存在的文件但是 to 不存在
+        for (String fileName : from.getTree().keySet()) {
+            if (!to.hasFile(fileName)) {
+                join(CWD, fileName).delete();
+            }
+        }
+        for (String fileName : to.getTree().keySet()) {
+            Blob blob = to.getBlob(fileName);
+            if (blob == null) {
+                throw error("File does not exist in that commit.");
+            }
+            writeBlobToCWD(blob);
+        }
+        cleanStage();
+    }
+
+    /**
+     * 清空暂存区
+     */
+    private static void cleanStage() {
+        getStage().clear();
     }
 }

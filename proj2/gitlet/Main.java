@@ -43,8 +43,39 @@ public class Main {
             case "status":
                 status(args);
                 break;
+            case "checkout":
+                checkout(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
+        }
+    }
+
+    /**
+     * checkout
+     */
+    private static void checkout(String[] args) {
+        checkRepositoryExists();
+        // checkout -- [file name]
+        if (args.length == 3) {
+            if (!args[1].equals("--")) {
+                Utils.message("Incorrect operands.");
+            }
+            Repository.checkoutCommit(null, args[2]);
+        }
+        // checkout [commit id] -- [file name]
+        else if (args.length == 4) {
+            if (!args[2].equals("--")) {
+                Utils.message("Incorrect operands.");
+            }
+            Repository.checkoutCommit(args[1], args[3]);
+        }
+        // checkout [branch name]
+        else if (args.length == 1) {
+            Repository.checkoutBranch(args[1]);
+        }
+        else {
+            Utils.message("Incorrect operands.");
         }
     }
 

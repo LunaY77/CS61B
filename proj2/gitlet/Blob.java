@@ -14,14 +14,12 @@ public class Blob implements Serializable {
 
     private final byte[] content;
 
-    public Blob(byte[] content) {
-        this.key = Utils.sha1(content);
-        this.content = content;
-    }
+    private String fileName;
 
-    public Blob(String key, byte[] content) {
+    public Blob(String key, byte[] content, String fileName) {
         this.key = key;
         this.content = content;
+        this.fileName = fileName;
     }
 
     public String getKey() {
@@ -30,5 +28,9 @@ public class Blob implements Serializable {
 
     public byte[] getContent() {
         return content;
+    }
+
+    public String getFileName() {
+        return fileName;
     }
 }
