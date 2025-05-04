@@ -49,9 +49,21 @@ public class Main {
             case "branch":
                 branch(args);
                 break;
+            case "rm-branch":
+                rmBranch(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
         }
+    }
+
+    /**
+     * rm-branch
+     */
+    private static void rmBranch(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 2);
+        Repository.rmBranch(args[1]);
     }
 
     /**

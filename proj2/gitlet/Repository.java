@@ -250,6 +250,16 @@ public class Repository {
     }
 
     /**
+     * 如果分支名不存在则抛出异常
+     * @param branchName 分支名
+     */
+    private static void checkBranchNotExistsAndThrow(String branchName) {
+        if (!join(HEADS_DIR, branchName).exists()) {
+            throw error("A branch with that name does not exist.");
+        }
+    }
+
+    /**
      * rm 删除暂存区的文件或者已提交的文件
      * @param fileName 文件名
      */
@@ -441,5 +451,20 @@ public class Repository {
     public static void branch(String branchName) {
         checkBranchExistsAndThrow(branchName);
         saveBranch(branchName, getCurrCommitId());
+    }
+
+    /**
+     * 删除指定的分支
+     * @param branchName 分支名
+     */
+    public static void rmBranch(String branchName) {
+        checkBranchNotExistsAndThrow(branchName);
+        String currBranch = getCurrBranch();
+        // 不能删除当前分支
+        if (currBranch.equals(branchName)) {
+            throw error("Cannot remove the current branch.");
+        }
+        // delete
+        join(HEADS_DIR, branchName).delete();
     }
 }
