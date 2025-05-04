@@ -2,13 +2,16 @@ package gitlet;
 
 import static gitlet.Constant.GITLET_DIR;
 
-/** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author TODO
+/**
+ * Driver class for Gitlet, a subset of the Git version-control system.
+ *
+ * @author TODO
  */
 public class Main {
 
-    /** Usage: java gitlet.Main ARGS, where ARGS contains
-     *  <COMMAND> <OPERAND1> <OPERAND2> ... 
+    /**
+     * Usage: java gitlet.Main ARGS, where ARGS contains
+     * <COMMAND> <OPERAND1> <OPERAND2> ...
      */
     public static void main(String[] args) {
         // 参数为空
@@ -18,7 +21,7 @@ public class Main {
         }
         String firstArg = args[0];
 
-        switch(firstArg) {
+        switch (firstArg) {
             case "init":
                 init(args);
                 break;
@@ -52,9 +55,21 @@ public class Main {
             case "rm-branch":
                 rmBranch(args);
                 break;
+            case "reset":
+                reset(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
         }
+    }
+
+    /**
+     * reset
+     */
+    private static void reset(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 2);
+        Repository.reset(args[1]);
     }
 
     /**
@@ -97,8 +112,7 @@ public class Main {
         // checkout [branch name]
         else if (args.length == 2) {
             Repository.checkoutBranch(args[1]);
-        }
-        else {
+        } else {
             Utils.message("Incorrect operands.");
         }
     }
@@ -114,6 +128,7 @@ public class Main {
 
     /**
      * find
+     *
      * @param args
      */
     private static void find(String[] args) {
@@ -157,7 +172,7 @@ public class Main {
         checkOperands(args, 2);
         String message = args[1];
         if (Utils.isBlank(message)) {
-            throw Utils.error("Please enter a commit message.");
+            Utils.errorAndExit("Please enter a commit message.");
         }
         Repository.commit(message);
     }

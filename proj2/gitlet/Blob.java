@@ -14,7 +14,7 @@ public class Blob implements Serializable {
 
     private final byte[] content;
 
-    private String fileName;
+    private final String fileName;
 
     public Blob(String key, byte[] content, String fileName) {
         this.key = key;

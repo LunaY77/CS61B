@@ -261,6 +261,11 @@ class Utils {
         return new GitletException(String.format(msg, args));
     }
 
+    static void errorAndExit(String msg) {
+        System.out.println(msg);
+        System.exit(0);
+    }
+
     /**
      * Print a message composed from MSG and ARGS as for the String.format
      * method, followed by a newline.
@@ -273,7 +278,7 @@ class Utils {
     static boolean isBlank(CharSequence str) {
         int length;
         if (str != null && (length = str.length()) != 0) {
-            for(int i = 0; i < length; ++i) {
+            for (int i = 0; i < length; ++i) {
                 if (!isBlankChar(str.charAt(i))) {
                     return false;
                 }

@@ -25,8 +25,9 @@ public class Stage implements Serializable {
 
     /**
      * 向暂存区添加新的文件
+     *
      * @param fileName 文件名
-     * @param hash 哈希值
+     * @param hash     哈希值
      */
     public void addFile(String fileName, String hash) {
         addFiles.put(fileName, hash);
@@ -44,7 +45,18 @@ public class Stage implements Serializable {
     }
 
     /**
+     * 撤销暂存区的删除
+     *
+     * @param fileName 文件名
+     */
+    public void cancelRemove(String fileName) {
+        removeFiles.remove(fileName);
+        Repository.saveStage(this);
+    }
+
+    /**
      * 文件是否添加到暂存区
+     *
      * @param fileName 文件名
      * @return 是否添加
      */
@@ -55,6 +67,7 @@ public class Stage implements Serializable {
 
     /**
      * 暂存区是否为空
+     *
      * @return 暂存区是否为空
      */
     public boolean isEmpty() {
@@ -80,6 +93,7 @@ public class Stage implements Serializable {
 
     /**
      * 标记删除
+     *
      * @param fileName 文件名
      */
     public void removeFile(String fileName) {

@@ -5,14 +5,17 @@ package gitlet;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 import static gitlet.Constant.BLOBS_DIR;
 import static gitlet.Utils.*;
 
 /**
  * Represents a gitlet commit object.
- *  does at a high level.
+ * does at a high level.
  *
  * @author TODO
  */
@@ -63,7 +66,10 @@ public class Commit implements Serializable {
         tree = new HashMap<>();
         if (parentCommit != null) {
             this.parentId1 = parentCommit.getKey();
-            tree.putAll(parentCommit.getTree());
+            Map<String, String> parentTree = parentCommit.getTree();
+            for (String filePath : parentTree.keySet()) {
+                tree.put(filePath, parentTree.get(filePath));
+            }
         }
     }
 
