@@ -46,9 +46,21 @@ public class Main {
             case "checkout":
                 checkout(args);
                 break;
+            case "branch":
+                branch(args);
+                break;
             default:
                 Utils.message("No command with that name exists.");
         }
+    }
+
+    /**
+     * branch
+     */
+    private static void branch(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 2);
+        Repository.branch(args[1]);
     }
 
     /**
@@ -71,7 +83,7 @@ public class Main {
             Repository.checkoutCommit(args[1], args[3]);
         }
         // checkout [branch name]
-        else if (args.length == 1) {
+        else if (args.length == 2) {
             Repository.checkoutBranch(args[1]);
         }
         else {

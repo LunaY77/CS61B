@@ -2,7 +2,6 @@ package gitlet;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -130,7 +129,7 @@ public class Repository {
         // 保存 commit
         saveCommit(commit);
         // 更新 branch
-        saveBranch("master", commit.getKey());
+        saveBranch(getCurrBranch(), commit.getKey());
         // 清空暂存区
         cleanStage();
     }
@@ -143,11 +142,25 @@ public class Repository {
         Commit commit = Commit.initialCommit();
         saveCommit(commit);
         // 初始化分支
-        saveBranch("master", commit.getKey());
+        saveBranchAndCheckout("master", commit.getKey());
     }
 
-    public static void saveBranch(String branchName, String commitKey) {
+    /**
+     * 保存分支信息同时将头指针指向该分支
+     * @param branchName 分支名
+     * @param commitKey commitId
+     */
+    public static void saveBranchAndCheckout(String branchName, String commitKey) {
         writeContents(HEAD, branchName);
+        writeContents(join(HEADS_DIR, branchName), commitKey);
+    }
+
+    /**
+     * 保存分支信息
+     * @param branchName 分支名
+     * @param commitKey commitId
+     */
+    private static void saveBranch(String branchName, String commitKey) {
         writeContents(join(HEADS_DIR, branchName), commitKey);
     }
 
@@ -224,6 +237,16 @@ public class Repository {
             throw error("No such branch exists.");
         }
         return readContentsAsString(join(HEADS_DIR, branchName));
+    }
+
+    /**
+     * 如果分支名已存在则抛出异常
+     * @param branchName 分支名
+     */
+    private static void checkBranchExistsAndThrow(String branchName) {
+        if (join(HEADS_DIR, branchName).exists()) {
+            throw error("A branch with that name already exists.");
+        }
     }
 
     /**
@@ -378,7 +401,7 @@ public class Repository {
         }
 
         // checkout
-        saveBranch(branchName, commitKey);
+        saveBranchAndCheckout(branchName, commitKey);
         checkout(currCommit, targetCommit);
     }
 
@@ -409,5 +432,14 @@ public class Repository {
      */
     private static void cleanStage() {
         getStage().clear();
+    }
+
+    /**
+     * branch 创建新分支
+     * @param branchName 分支名
+     */
+    public static void branch(String branchName) {
+        checkBranchExistsAndThrow(branchName);
+        saveBranch(branchName, getCurrCommitId());
     }
 }
