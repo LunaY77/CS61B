@@ -275,6 +275,10 @@ class Utils {
         System.out.println();
     }
 
+    static void message(String msg) {
+        System.out.println(msg);
+    }
+
     static boolean isBlank(CharSequence str) {
         int length;
         if (str != null && (length = str.length()) != 0) {

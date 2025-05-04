@@ -5,10 +5,7 @@ package gitlet;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import static gitlet.Constant.BLOBS_DIR;
 import static gitlet.Utils.*;
@@ -57,9 +54,6 @@ public class Commit implements Serializable {
      */
     private String commitKey;
 
-    /**
-     * 初始提交
-     */
     public Commit(String message, Commit parentCommit, Date createTime) {
         this.message = message;
         this.creatTime = createTime;
@@ -71,6 +65,11 @@ public class Commit implements Serializable {
                 tree.put(filePath, parentTree.get(filePath));
             }
         }
+    }
+
+    public Commit(String message, Commit currCommit, Commit otherCommit, Date date) {
+        this(message, currCommit, date);
+        this.parentId2 = otherCommit.getKey();
     }
 
     /**
@@ -145,7 +144,7 @@ public class Commit implements Serializable {
     private String printMerge() {
         return "===\n" +
                 "commit " + getKey() + "\n" +
-                "Merge: " + getFirstParentKey().substring(0, 8) + " " + getSecondParentKey().substring(0, 8) +
+                "Merge: " + getFirstParentKey().substring(0, 7) + " " + getSecondParentKey().substring(0, 7) + "\n" +
                 "Date: " + getCreatTime() + "\n" +
                 getMessage() + "\n";
     }
@@ -154,5 +153,13 @@ public class Commit implements Serializable {
         String blobKey = getBlobKey(fileName);
         if (blobKey == null) return null;
         return readObject(join(BLOBS_DIR, blobKey), Blob.class);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Commit commit = (Commit) o;
+        return Objects.equals(message, commit.message) && Objects.equals(creatTime, commit.creatTime) && Objects.equals(parentId1, commit.parentId1) && Objects.equals(parentId2, commit.parentId2) && Objects.equals(tree, commit.tree) && Objects.equals(commitKey, commit.commitKey);
     }
 }

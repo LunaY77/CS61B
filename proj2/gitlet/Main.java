@@ -1,6 +1,7 @@
 package gitlet;
 
 import static gitlet.Constant.GITLET_DIR;
+import static gitlet.Utils.*;
 
 /**
  * Driver class for Gitlet, a subset of the Git version-control system.
@@ -16,7 +17,7 @@ public class Main {
     public static void main(String[] args) {
         // 参数为空
         if (args.length == 0) {
-            Utils.message("Please enter a command.");
+            message("Please enter a command.");
             return;
         }
         String firstArg = args[0];
@@ -58,9 +59,21 @@ public class Main {
             case "reset":
                 reset(args);
                 break;
+            case "merge":
+                merge(args);
+                break;
             default:
-                Utils.message("No command with that name exists.");
+                message("No command with that name exists.");
         }
+    }
+
+    /**
+     * merge
+     */
+    private static void merge(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 2);
+        Repository.merge(args[1]);
     }
 
     /**
@@ -98,14 +111,14 @@ public class Main {
         // checkout -- [file name]
         if (args.length == 3) {
             if (!args[1].equals("--")) {
-                Utils.message("Incorrect operands.");
+                message("Incorrect operands.");
             }
             Repository.checkoutCommit(null, args[2]);
         }
         // checkout [commit id] -- [file name]
         else if (args.length == 4) {
             if (!args[2].equals("--")) {
-                Utils.message("Incorrect operands.");
+                message("Incorrect operands.");
             }
             Repository.checkoutCommit(args[1], args[3]);
         }
@@ -113,7 +126,7 @@ public class Main {
         else if (args.length == 2) {
             Repository.checkoutBranch(args[1]);
         } else {
-            Utils.message("Incorrect operands.");
+            message("Incorrect operands.");
         }
     }
 
@@ -171,8 +184,13 @@ public class Main {
         checkRepositoryExists();
         checkOperands(args, 2);
         String message = args[1];
-        if (Utils.isBlank(message)) {
-            Utils.errorAndExit("Please enter a commit message.");
+        if (isBlank(message)) {
+            errorAndExit("Please enter a commit message.");
+        }
+        // 暂存区中无文件
+        Stage stage = Repository.getStage();
+        if (stage.isEmpty()) {
+            errorAndExit("No changes added to the commit.");
         }
         Repository.commit(message);
     }
@@ -199,7 +217,7 @@ public class Main {
      */
     private static void checkOperands(String[] args, int expectedLength) {
         if (args.length != expectedLength) {
-            Utils.message("Incorrect operands.");
+            message("Incorrect operands.");
             System.exit(0);
         }
     }
@@ -210,7 +228,7 @@ public class Main {
     private static void checkRepositoryExists() {
         // 不在初始化 gitlet 工作目录
         if (!GITLET_DIR.exists()) {
-            Utils.message("Not in an initialized Gitlet directory.");
+            message("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
     }
