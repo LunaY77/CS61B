@@ -30,7 +30,12 @@
     ├── commits
     └── blobs
 └── refs
-    ├── branch
+    ├── heads
+        └── master
+    └── remotes
+        └── origin
+            └── main
 └── stage
 └── HEAD
+└── FETCH_HEAD
 ```

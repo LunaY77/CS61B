@@ -13,12 +13,16 @@ import static gitlet.Utils.*;
  * <br>
  * .gitlet
  * ├── objects
- * ├── commits
- * └── blobs
+ *      ├── commits
+ *      └── blobs
  * └── refs
- * ├── branch
+ *      ├── heads
+ *      └── remotes
+ *          └── origin
+ *              └── main
  * └── stage
  * └── HEAD
+ * └── FETCH_HEAD
  *
  * @author 苍镜月
  */
@@ -690,15 +694,5 @@ public class Repository {
             }
         }
         return map;
-    }
-
-    private static class Pair {
-        String key;
-        Integer layer;
-
-        Pair(String key, Integer layer) {
-            this.key = key;
-            this.layer = layer;
-        }
     }
 }
