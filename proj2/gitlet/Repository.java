@@ -20,20 +20,20 @@ public class Repository {
 
     public static void init() {
         // 文件夹已存在
-        if (REPO_PATH.GITLET_DIR().exists()) {
+        if (REPO_PATH.getGitletDir().exists()) {
             message("A Gitlet version-control system already exists in the current directory.");
             return;
         }
         // 创建.gitlet文件夹
-        mkdir(REPO_PATH.GITLET_DIR());
+        mkdir(REPO_PATH.getGitletDir());
         // 创建 obj 文件夹及其子文件夹
-        mkdir(REPO_PATH.OBJECTS_DIR());
-        mkdir(REPO_PATH.COMMITS_DIR());
-        mkdir(REPO_PATH.BLOBS_DIR());
+        mkdir(REPO_PATH.getObjectsDir());
+        mkdir(REPO_PATH.getCommitsDir());
+        mkdir(REPO_PATH.getBlobsDir());
         // 创建 refs 文件夹及其子文件夹
-        mkdir(REPO_PATH.REFS_DIR());
-        mkdir(REPO_PATH.HEADS_DIR());
-        mkdir(REPO_PATH.REMOTES_DIR());
+        mkdir(REPO_PATH.getRefsDir());
+        mkdir(REPO_PATH.getHeadsDir());
+        mkdir(REPO_PATH.getRemotesDir());
         // 创建 Remote 对象
         initRemote();
         // 创建 stage 文件
@@ -64,7 +64,7 @@ public class Repository {
      * @param fileName 文件名
      */
     public static void add(String fileName) {
-        File file = join(REPO_PATH.CWD(), fileName);
+        File file = join(REPO_PATH.getCwd(), fileName);
         // 文件不存在
         if (!file.exists()) {
             errorAndExit("File does not exist.");
@@ -183,7 +183,7 @@ public class Repository {
      * global-log 全局日志
      */
     public static void globalLog() {
-        List<String> commitKeys = plainFilenamesIn(REPO_PATH.COMMITS_DIR());
+        List<String> commitKeys = plainFilenamesIn(REPO_PATH.getCommitsDir());
         for (String commitKey : commitKeys) {
             message("%s", REPO_PATH.getCommit(commitKey));
         }
@@ -195,7 +195,7 @@ public class Repository {
      * @param message 提交消息
      */
     public static void find(String message) {
-        List<String> commitKeys = plainFilenamesIn(REPO_PATH.COMMITS_DIR());
+        List<String> commitKeys = plainFilenamesIn(REPO_PATH.getCommitsDir());
         boolean exist = false;
         for (String commitKey : commitKeys) {
             if (REPO_PATH.getCommit(commitKey).getMessage().equals(message)) {
@@ -217,7 +217,7 @@ public class Repository {
 
         // === Branches ===
         String currBranch = REPO_PATH.getCurrBranch();
-        List<String> branches = plainFilenamesIn(REPO_PATH.HEADS_DIR());
+        List<String> branches = plainFilenamesIn(REPO_PATH.getHeadsDir());
         message("=== Branches ===");
         for (String branch : branches) {
             if (branch.equals(currBranch)) {
@@ -247,7 +247,7 @@ public class Repository {
         // 文件路径基于字典序排序
         List<String> sortedFilePaths = trackedFiles.stream().sorted().collect(Collectors.toList());
         for (String filePath : sortedFilePaths) {
-            File file = join(REPO_PATH.CWD(), filePath);
+            File file = join(REPO_PATH.getCwd(), filePath);
             if (file.exists()) {
                 // 文件存在，基于sha1哈希值判断是否修改
                 String contentKey = sha1(readContents(file));
@@ -265,7 +265,7 @@ public class Repository {
 
         // === Untracked Files ===
         message("=== Untracked Files ===");
-        List<String> allFiles = plainFilenamesIn(REPO_PATH.CWD());
+        List<String> allFiles = plainFilenamesIn(REPO_PATH.getCwd());
         for (String file : allFiles) {
             if (!trackedFiles.contains(file)
                     && !addFiles.contains(file)
@@ -302,7 +302,7 @@ public class Repository {
      * @param fileName
      */
     private static void writeBlobToCWD(Blob blob, String fileName) {
-        File file = join(REPO_PATH.CWD(), fileName);
+        File file = join(REPO_PATH.getCwd(), fileName);
         writeContents(file, blob.getContent());
     }
 
@@ -339,7 +339,7 @@ public class Repository {
         // 删除 from 存在的文件但是 to 不存在
         for (String fileName : from.getTree().keySet()) {
             if (!to.hasFile(fileName)) {
-                join(REPO_PATH.CWD(), fileName).delete();
+                join(REPO_PATH.getCwd(), fileName).delete();
             }
         }
         // 目标分支存在
@@ -362,8 +362,10 @@ public class Repository {
      */
     private static void checkUntrackedFiles(Commit from, Commit to) {
         for (String fileName : to.getTree().keySet()) {
-            if (!from.hasFile(fileName) && join(REPO_PATH.CWD(), fileName).exists()) {
-                errorAndExit("There is an untracked file in the way; delete it, or add and commit it first.");
+            if (!from.hasFile(fileName) 
+                    && join(REPO_PATH.getCwd(), fileName).exists()) {
+                errorAndExit("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
             }
         }
     }
@@ -398,7 +400,7 @@ public class Repository {
             errorAndExit("Cannot remove the current branch.");
         }
         // delete
-        join(REPO_PATH.HEADS_DIR(), branchName).delete();
+        join(REPO_PATH.getHeadsDir(), branchName).delete();
     }
 
     /**
@@ -452,18 +454,18 @@ public class Repository {
         if (Objects.equals(splitPoint, target)) {
             message("Given branch is an ancestor of the current branch.");
             return;
-        }
         // 2. 如果相交节点是当前节点，表示当前节点是目标节点的祖先，则 checkout 到目标节点
-        if (Objects.equals(splitPoint, base)) {
+        } else if (Objects.equals(splitPoint, base)) {
             message("Current branch fast-forwarded.");
             checkout(base, target);
             REPO_PATH.saveBranchAndCheckout(branchName, target.getKey());
             return;
-        }
         // 3. 合并 merge
-        mergeFiles(base, target, splitPoint);
-        String commitMessage = String.format("Merged %s into %s.", branchName, currBranchName);
-        commit(commitMessage, target);
+        } else {
+            mergeFiles(base, target, splitPoint);
+            String commitMessage = String.format("Merged %s into %s.", branchName, currBranchName);
+            commit(commitMessage, target);
+        }
     }
 
     /**
@@ -488,17 +490,17 @@ public class Repository {
             String targetBlobKey = targetCommitTree.get(fileName);
             String splitBlobKey = splitCommitTree.get(fileName);
 
-            if (!Objects.equals(targetBlobKey, splitBlobKey) && Objects.equals(baseBlobKey, splitBlobKey)) {
+            if (!Objects.equals(targetBlobKey, splitBlobKey) 
+                    && Objects.equals(baseBlobKey, splitBlobKey)) {
                 // 1. modified in target but not in base (staged for addition)
                 // 5. not in split nor base but in target -> target (staged for addition)
                 if (targetBlobKey != null) {
                     checkoutCommit(target.getKey(), fileName);
                     stage.addFile(fileName, targetBlobKey);
-                }
                 // 6. unmodified in base but not present in target -> remove (staged for deletion)
-                else {
+                } else {
                     stage.removeFile(fileName);
-                    File file = join(REPO_PATH.CWD(), fileName);
+                    File file = join(REPO_PATH.getCwd(), fileName);
                     if (file.exists()) {
                         file.delete();
                     }
@@ -507,7 +509,8 @@ public class Repository {
             // 2. modified in base but not in target (no need for stage)
             // 4. not in split nor target but in base -> base (no need for stage)
             // 7. unmodified in target but not present in base -> remain remove (no need for stage)
-            if (Objects.equals(targetBlobKey, splitBlobKey) && !Objects.equals(baseBlobKey, splitBlobKey)) {
+            if (Objects.equals(targetBlobKey, splitBlobKey) 
+                    && !Objects.equals(baseBlobKey, splitBlobKey)) {
                 continue;
             }
             // 3.1. modified in base and target in same way -> same (no need for stage)
@@ -515,18 +518,25 @@ public class Repository {
                 continue;
             }
             // 3.2 modified in base and target in different way -> conflict
-            if (!Objects.equals(targetBlobKey, splitBlobKey) && !Objects.equals(baseBlobKey, splitBlobKey)) {
+            if (!Objects.equals(targetBlobKey, splitBlobKey) 
+                    && !Objects.equals(baseBlobKey, splitBlobKey)) {
                 // 处理冲突
                 message("Encountered a merge conflict.");
-                byte[] content = ("<<<<<<< HEAD\n" +
-                        (baseBlobKey == null ? "" : new String(readObject(join(REPO_PATH.BLOBS_DIR(), baseBlobKey), Blob.class).getContent(), StandardCharsets.UTF_8)) +
-                        "=======\n" +
-                        (targetBlobKey == null ? "" : new String(readObject(join(REPO_PATH.BLOBS_DIR(), targetBlobKey), Blob.class).getContent(), StandardCharsets.UTF_8)) +
-                        ">>>>>>>\n").getBytes(StandardCharsets.UTF_8);
+                byte[] content = ("<<<<<<< HEAD\n" 
+                        + (baseBlobKey == null ? "" : new String(
+                            readObject(join(REPO_PATH.getBlobsDir(), baseBlobKey), 
+                                Blob.class).getContent(), 
+                            StandardCharsets.UTF_8)) 
+                        + "=======\n" 
+                        + (targetBlobKey == null ? "" : new String(
+                            readObject(join(REPO_PATH.getBlobsDir(), targetBlobKey), 
+                                Blob.class).getContent(), 
+                            StandardCharsets.UTF_8)) 
+                        + ">>>>>>>\n").getBytes(StandardCharsets.UTF_8);
                 String mergeBlobKey = sha1(content);
                 REPO_PATH.createAndSaveBlob(mergeBlobKey, content, fileName);
                 stage.addFile(fileName, mergeBlobKey);
-                writeContents(join(REPO_PATH.CWD(), fileName), content);
+                writeContents(join(REPO_PATH.getCwd(), fileName), content);
             }
         }
     }

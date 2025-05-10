@@ -20,7 +20,8 @@ public class Commit implements Serializable {
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
      */
-    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
+    private static final DateFormat DATE_FORMAT = 
+        new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.US);
 
     /**
      * The message of this Commit.
@@ -133,25 +134,40 @@ public class Commit implements Serializable {
     }
 
     private String print() {
-        return "===\n" +
-                "commit " + getKey() + "\n" +
-                "Date: " + getCreatTime() + "\n" +
-                getMessage() + "\n";
+        return "===\n" 
+                + "commit " + getKey() + "\n" 
+                + "Date: " + getCreatTime() + "\n" 
+                + getMessage() + "\n";
     }
 
     private String printMerge() {
-        return "===\n" +
-                "commit " + getKey() + "\n" +
-                "Merge: " + getFirstParentKey().substring(0, 7) + " " + getSecondParentKey().substring(0, 7) + "\n" +
-                "Date: " + getCreatTime() + "\n" +
-                getMessage() + "\n";
+        return "===\n" 
+                + "commit " + getKey() + "\n" 
+                + "Merge: " + getFirstParentKey().substring(0, 7) + " " 
+                + getSecondParentKey().substring(0, 7) + "\n" 
+                + "Date: " + getCreatTime() + "\n" 
+                + getMessage() + "\n";
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Commit commit = (Commit) o;
-        return Objects.equals(message, commit.message) && Objects.equals(creatTime, commit.creatTime) && Objects.equals(parentId1, commit.parentId1) && Objects.equals(parentId2, commit.parentId2) && Objects.equals(tree, commit.tree) && Objects.equals(commitKey, commit.commitKey);
+        return Objects.equals(message, commit.message) 
+                && Objects.equals(creatTime, commit.creatTime) 
+                && Objects.equals(parentId1, commit.parentId1) 
+                && Objects.equals(parentId2, commit.parentId2) 
+                && Objects.equals(tree, commit.tree) 
+                && Objects.equals(commitKey, commit.commitKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(message, creatTime, parentId1, parentId2, tree, commitKey);
     }
 }

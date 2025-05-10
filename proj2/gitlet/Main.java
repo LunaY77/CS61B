@@ -286,7 +286,7 @@ public class Main {
      */
     private static void checkRepositoryExists() {
         // 不在初始化 gitlet 工作目录
-        if (!Repository.REPO_PATH.GITLET_DIR().exists()) {
+        if (!Repository.REPO_PATH.getGitletDir().exists()) {
             message("Not in an initialized Gitlet directory.");
             System.exit(0);
         }

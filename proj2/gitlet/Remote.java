@@ -82,7 +82,7 @@ public class Remote implements Serializable {
         checkRemoteNameNotExistsAndThrow(remoteName);
         RepositoryPath remoteRepositoryPath = remoteMap.get(remoteName);
         // 校验.gitlet文件夹是否存在
-        if (!remoteRepositoryPath.GITLET_DIR().exists()) {
+        if (!remoteRepositoryPath.getGitletDir().exists()) {
             errorAndExit("Remote directory not found.");
         }
     }

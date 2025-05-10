@@ -37,85 +37,85 @@ public class RepositoryPath implements Serializable {
     /**
      * The current working directory.
      */
-    public File CWD() {
+    public File getCwd() {
         return CWD;
     }
 
     /**
      * The .gitlet directory.
      */
-    public File GITLET_DIR() {
+    public File getGitletDir() {
         return join(CWD, ".gitlet");
     }
 
     /**
      * 暂存区
      */
-    public File STAGE() {
-        return join(GITLET_DIR(), "stage");
+    public File getStageFile() {
+        return join(getGitletDir(), "stage");
     }
 
     /**
      * 存放 commit 和 blob 文件夹
      */
-    public File OBJECTS_DIR() {
-        return join(GITLET_DIR(), "objects");
+    public File getObjectsDir() {
+        return join(getGitletDir(), "objects");
     }
 
     /**
      * 存放 commit 的文件夹
      */
-    public File COMMITS_DIR() {
-        return join(OBJECTS_DIR(), "commits");
+    public File getCommitsDir() {
+        return join(getObjectsDir(), "commits");
     }
 
     /**
      * 存放 blob 的文件夹
      */
-    public File BLOBS_DIR() {
-        return join(OBJECTS_DIR(), "blobs");
+    public File getBlobsDir() {
+        return join(getObjectsDir(), "blobs");
     }
 
     /**
      * 引用文件夹
      */
-    public File REFS_DIR() {
-        return join(GITLET_DIR(), "refs");
+    public File getRefsDir() {
+        return join(getGitletDir(), "refs");
     }
 
     /**
      * 头指针文件夹(branch)
      */
-    public File HEADS_DIR() {
-        return join(REFS_DIR(), "heads");
+    public File getHeadsDir() {
+        return join(getRefsDir(), "heads");
     }
 
     /**
      * 当前头指针
      */
-    public File HEAD() {
-        return join(GITLET_DIR(), "HEAD");
+    public File getHead() {
+        return join(getGitletDir(), "HEAD");
     }
 
     /**
      * REMOTE 对象
      */
-    public File REMOTE() {
-        return join(GITLET_DIR(), "REMOTE");
+    public File getRemoteFile() {
+        return join(getGitletDir(), "REMOTE");
     }
 
     /**
      * 远程分支文件夹(remotes)
      */
-    public File REMOTES_DIR() {
-        return join(REFS_DIR(), "remotes");
+    public File getRemotesDir() {
+        return join(getRefsDir(), "remotes");
     }
 
     /**
      * 远程分支头部
      */
-    public File FETCH_HEAD() {
-        return join(GITLET_DIR(), "FETCH_HEAD");
+    public File getFetchHead() {
+        return join(getGitletDir(), "FETCH_HEAD");
     }
 
     /**
@@ -124,7 +124,7 @@ public class RepositoryPath implements Serializable {
      * @return 远程分支对象
      */
     public Remote getRemote() {
-        return readObject(REMOTE(), Remote.class);
+        return readObject(getRemoteFile(), Remote.class);
     }
 
     /**
@@ -133,7 +133,7 @@ public class RepositoryPath implements Serializable {
      * @return 暂存区信息
      */
     public Stage getStage() {
-        return readObject(STAGE(), Stage.class);
+        return readObject(getStageFile(), Stage.class);
     }
 
     /**
@@ -143,7 +143,7 @@ public class RepositoryPath implements Serializable {
      */
     public Commit getCurrCommit() {
         String currCommitId = getCurrCommitId();
-        return readObject(join(COMMITS_DIR(), currCommitId), Commit.class);
+        return readObject(join(getCommitsDir(), currCommitId), Commit.class);
     }
 
     /**
@@ -158,10 +158,11 @@ public class RepositoryPath implements Serializable {
         }
         List<String> matchingCommits = findMatchingCommits(commitId);
         // 如果文件不止一个 或者 文件不存在
-        if (matchingCommits.size() != 1 || !join(COMMITS_DIR(), matchingCommits.get(0)).exists()) {
+        if (matchingCommits.size() != 1 
+                || !join(getCommitsDir(), matchingCommits.get(0)).exists()) {
             errorAndExit("No commit with that id exists.");
         }
-        return readObject(join(COMMITS_DIR(), matchingCommits.get(0)), Commit.class);
+        return readObject(join(getCommitsDir(), matchingCommits.get(0)), Commit.class);
     }
 
     /**
@@ -171,7 +172,7 @@ public class RepositoryPath implements Serializable {
      * @return prefix 开头的 commit
      */
     public List<String> findMatchingCommits(String prefix) {
-        List<String> commitKeys = plainFilenamesIn(COMMITS_DIR());
+        List<String> commitKeys = plainFilenamesIn(getCommitsDir());
         List<String> res = new ArrayList<>();
         for (String commitKey : commitKeys) {
             if (commitKey.startsWith(prefix)) {
@@ -190,9 +191,9 @@ public class RepositoryPath implements Serializable {
         String currBranch = getCurrBranch();
         String[] split = currBranch.split("/");
         if (split.length == 1) {
-            return readContentsAsString(join(HEADS_DIR(), currBranch));
+            return readContentsAsString(join(getHeadsDir(), currBranch));
         } else {
-            return readContentsAsString(join(REMOTES_DIR(), split[0], split[1]));
+            return readContentsAsString(join(getRemotesDir(), split[0], split[1]));
         }
     }
 
@@ -202,7 +203,7 @@ public class RepositoryPath implements Serializable {
      * @return 当前分支名字
      */
     public String getCurrBranch() {
-        return readContentsAsString(HEAD());
+        return readContentsAsString(getHead());
     }
 
     /**
@@ -215,12 +216,12 @@ public class RepositoryPath implements Serializable {
         String[] split = branchName.split("/");
         // 本地分支
         if (split.length == 1) {
-            List<String> branches = plainFilenamesIn(HEADS_DIR());
+            List<String> branches = plainFilenamesIn(getHeadsDir());
             if (branches == null || branches.stream().noneMatch(b -> b.equals(branchName))) {
                 errorAndExit("No such branch exists.");
             }
-            return readContentsAsString(join(HEADS_DIR(), branchName));
-            // 远程分支
+            return readContentsAsString(join(getHeadsDir(), branchName));
+        // 远程分支
         } else {
             return getRemoteBranchNotNull(split[0], split[1]);
         }
@@ -234,12 +235,13 @@ public class RepositoryPath implements Serializable {
      * @return Head Commit Key
      */
     private String getRemoteBranchNotNull(String remoteName, String remoteBranchName) {
-        File remoteRepoDir = join(REMOTES_DIR(), remoteName);
+        File remoteRepoDir = join(getRemotesDir(), remoteName);
         if (!remoteRepoDir.exists()) {
             errorAndExit("No such branch exists.");
         }
         List<String> remoteBranches = plainFilenamesIn(remoteRepoDir);
-        if (remoteBranches == null || remoteBranches.stream().noneMatch(b -> b.equals(remoteBranchName))) {
+        if (remoteBranches == null 
+                || remoteBranches.stream().noneMatch(b -> b.equals(remoteBranchName))) {
             errorAndExit("No such branch exists.");
         }
         return readContentsAsString(join(remoteRepoDir, remoteBranchName));
@@ -252,7 +254,7 @@ public class RepositoryPath implements Serializable {
      * @return Head Commit Key
      */
     public String getBranch(String branchName) {
-        File branchFile = join(HEADS_DIR(), branchName);
+        File branchFile = join(getHeadsDir(), branchName);
         if (!branchFile.exists()) {
             return null;
         }
@@ -265,7 +267,7 @@ public class RepositoryPath implements Serializable {
      * @param branchName 分支名
      */
     public void checkBranchExistsAndThrow(String branchName) {
-        if (join(HEADS_DIR(), branchName).exists()) {
+        if (join(getHeadsDir(), branchName).exists()) {
             errorAndExit("A branch with that name already exists.");
         }
     }
@@ -278,11 +280,11 @@ public class RepositoryPath implements Serializable {
     public void checkBranchNotExistsAndThrow(String branchName) {
         String[] split = branchName.split("/");
         if (split.length == 1) {
-            if (!join(HEADS_DIR(), branchName).exists()) {
+            if (!join(getHeadsDir(), branchName).exists()) {
                 errorAndExit("A branch with that name does not exist.");
             }
         } else {
-            if (!join(REMOTES_DIR(), split[0], split[1]).exists()) {
+            if (!join(getRemotesDir(), split[0], split[1]).exists()) {
                 errorAndExit("A branch with that name does not exist.");
             }
         }
@@ -296,7 +298,7 @@ public class RepositoryPath implements Serializable {
      */
     public void createAndSaveBlob(String key, byte[] fileContent, String fileName) {
         Blob blob = new Blob(key, fileContent, fileName);
-        writeObject(join(BLOBS_DIR(), key), blob);
+        writeObject(join(getBlobsDir(), key), blob);
     }
 
     /**
@@ -306,7 +308,7 @@ public class RepositoryPath implements Serializable {
      * @param commitKey  commitId
      */
     public void saveBranchAndCheckout(String branchName, String commitKey) {
-        writeContents(HEAD(), branchName);
+        writeContents(getHead(), branchName);
         saveBranch(branchName, commitKey);
     }
 
@@ -320,8 +322,8 @@ public class RepositoryPath implements Serializable {
         String[] split = branchName.split("/");
         // 本地分支
         if (split.length == 1) {
-            writeContents(join(HEADS_DIR(), branchName), commitKey);
-            // 远程分支
+            writeContents(join(getHeadsDir(), branchName), commitKey);
+        // 远程分支
         } else {
             saveRemoteBranch(split[0], split[1], commitKey);
         }
@@ -333,7 +335,7 @@ public class RepositoryPath implements Serializable {
      * @param remote 远程分支对象
      */
     public void saveRemote(Remote remote) {
-        writeObject(REMOTE(), remote);
+        writeObject(getRemoteFile(), remote);
     }
 
     /**
@@ -342,7 +344,7 @@ public class RepositoryPath implements Serializable {
      * @param commit {@link Commit}
      */
     public void saveCommit(Commit commit) {
-        writeObject(join(COMMITS_DIR(), commit.getKey()), commit);
+        writeObject(join(getCommitsDir(), commit.getKey()), commit);
     }
 
     /**
@@ -351,7 +353,7 @@ public class RepositoryPath implements Serializable {
      * @param stage {@link Stage}
      */
     public void saveStage(Stage stage) {
-        writeObject(STAGE(), stage);
+        writeObject(getStageFile(), stage);
     }
 
     /**
@@ -368,7 +370,8 @@ public class RepositoryPath implements Serializable {
         String commitId = null;
         int layer = Integer.MAX_VALUE;
         for (String targetKey : targetAncestorLayerMap.keySet()) {
-            if (baseAncestorLayerMap.containsKey(targetKey) && layer > baseAncestorLayerMap.get(targetKey)) {
+            if (baseAncestorLayerMap.containsKey(targetKey) 
+                    && layer > baseAncestorLayerMap.get(targetKey)) {
                 commitId = targetKey;
                 layer = baseAncestorLayerMap.get(targetKey);
             }
@@ -403,10 +406,7 @@ public class RepositoryPath implements Serializable {
      * @param blobs blobs
      */
     public void saveBlobs(List<Blob> blobs) {
-        if (!BLOBS_DIR().exists()) {
-            mkdir(BLOBS_DIR());
-        }
-        blobs.forEach(b -> writeObject(join(BLOBS_DIR(), b.getKey()), b));
+        blobs.forEach(b -> writeObject(join(getBlobsDir(), b.getKey()), b));
     }
 
     /**
@@ -417,7 +417,7 @@ public class RepositoryPath implements Serializable {
      * @param key
      */
     public void saveRemoteBranch(String remoteName, String remoteBranchName, String key) {
-        File remoteNameDir = join(REMOTES_DIR(), remoteName);
+        File remoteNameDir = join(getRemotesDir(), remoteName);
         if (!remoteNameDir.exists()) {
             mkdir(remoteNameDir);
         }
@@ -431,7 +431,9 @@ public class RepositoryPath implements Serializable {
      * @return blob
      */
     public Blob getBlob(String blobKey) {
-        if (blobKey == null) return null;
-        return readObject(join(BLOBS_DIR(), blobKey), Blob.class);
+        if (blobKey == null) {
+            return null;
+        }
+        return readObject(join(getBlobsDir(), blobKey), Blob.class);
     }
 }

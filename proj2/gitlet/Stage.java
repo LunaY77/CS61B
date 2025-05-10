@@ -112,9 +112,9 @@ public class Stage implements Serializable {
 
     @Override
     public String toString() {
-        return "Stage{" +
-                "addFiles=" + addFiles +
-                ", removeFiles=" + removeFiles +
-                '}';
+        return "Stage{" 
+                + "addFiles=" + addFiles 
+                + ", removeFiles=" + removeFiles 
+                + '}';
     }
 }
