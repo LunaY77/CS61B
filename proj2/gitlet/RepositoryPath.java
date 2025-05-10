@@ -188,7 +188,12 @@ public class RepositoryPath implements Serializable {
      */
     public String getCurrCommitId() {
         String currBranch = getCurrBranch();
-        return readContentsAsString(join(HEADS_DIR(), currBranch));
+        String[] split = currBranch.split("/");
+        if (split.length == 1) {
+            return readContentsAsString(join(HEADS_DIR(), currBranch));
+        } else {
+            return readContentsAsString(join(REMOTES_DIR(), split[0], split[1]));
+        }
     }
 
     /**
@@ -207,11 +212,37 @@ public class RepositoryPath implements Serializable {
      * @return Head Commit Key
      */
     public String getBranchNotNull(String branchName) {
-        List<String> branches = plainFilenamesIn(HEADS_DIR());
-        if (branches == null || branches.stream().noneMatch(b -> b.equals(branchName))) {
+        String[] split = branchName.split("/");
+        // 本地分支
+        if (split.length == 1) {
+            List<String> branches = plainFilenamesIn(HEADS_DIR());
+            if (branches == null || branches.stream().noneMatch(b -> b.equals(branchName))) {
+                errorAndExit("No such branch exists.");
+            }
+            return readContentsAsString(join(HEADS_DIR(), branchName));
+        // 远程分支
+        } else {
+            return getRemoteBranchNotNull(split[0], split[1]);
+        }
+    }
+
+    /**
+     * 根据远程仓库名和远程分支名获取分支(不允许为空)
+     *
+     * @param remoteName 远程仓库名
+     * @param remoteBranchName 远程分支名
+     * @return Head Commit Key
+     */
+    private String getRemoteBranchNotNull(String remoteName, String remoteBranchName) {
+        File remoteRepoDir = join(REMOTES_DIR(), remoteName);
+        if (!remoteRepoDir.exists()) {
             errorAndExit("No such branch exists.");
         }
-        return readContentsAsString(join(HEADS_DIR(), branchName));
+        List<String> remoteBranches = plainFilenamesIn(remoteRepoDir);
+        if (remoteBranches == null || remoteBranches.stream().noneMatch(b -> b.equals(remoteBranchName))) {
+            errorAndExit("No such branch exists.");
+        }
+        return readContentsAsString(join(remoteRepoDir, remoteBranchName));
     }
 
     /**
@@ -269,7 +300,7 @@ public class RepositoryPath implements Serializable {
      */
     public void saveBranchAndCheckout(String branchName, String commitKey) {
         writeContents(HEAD(), branchName);
-        writeContents(join(HEADS_DIR(), branchName), commitKey);
+        saveBranch(branchName, commitKey);
     }
 
     /**
@@ -279,7 +310,14 @@ public class RepositoryPath implements Serializable {
      * @param commitKey  commitId
      */
     public void saveBranch(String branchName, String commitKey) {
-        writeContents(join(HEADS_DIR(), branchName), commitKey);
+        String[] split = branchName.split("/");
+        // 本地分支
+        if (split.length == 1) {
+            writeContents(join(HEADS_DIR(), branchName), commitKey);
+        // 远程分支
+        } else {
+            saveRemoteBranch(split[0], split[1], commitKey);
+        }
     }
 
     /**
@@ -358,6 +396,34 @@ public class RepositoryPath implements Serializable {
      * @param blobs blobs
      */
     public void saveBlobs(List<Blob> blobs) {
+        if (!BLOBS_DIR().exists()) {
+            mkdir(BLOBS_DIR());
+        }
         blobs.forEach(b -> writeObject(join(BLOBS_DIR(), b.getKey()), b));
+    }
+
+    /**
+     * 保存远程分支
+     * @param remoteName
+     * @param remoteBranchName
+     * @param key
+     */
+    public void saveRemoteBranch(String remoteName, String remoteBranchName, String key) {
+        File remoteNameDir = join(REMOTES_DIR(), remoteName);
+        if (!remoteNameDir.exists()) {
+            mkdir(remoteNameDir);
+        }
+        writeContents(join(remoteNameDir, remoteBranchName), key);
+    }
+
+    /**
+     * 获取 blob
+     *
+     * @param blobKey blob 哈希值
+     * @return blob
+     */
+    public Blob getBlob(String blobKey) {
+        if (blobKey == null) return null;
+        return readObject(join(BLOBS_DIR(), blobKey), Blob.class);
     }
 }

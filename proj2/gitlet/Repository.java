@@ -33,6 +33,7 @@ public class Repository {
         // 创建 refs 文件夹及其子文件夹
         mkdir(REPO_PATH.REFS_DIR());
         mkdir(REPO_PATH.HEADS_DIR());
+        mkdir(REPO_PATH.REMOTES_DIR());
         // 创建 Remote 对象
         initRemote();
         // 创建 stage 文件
@@ -286,7 +287,8 @@ public class Repository {
         Commit commit = Optional.ofNullable(commitId)
                 .map(REPO_PATH::getCommit)
                 .orElseGet(REPO_PATH::getCurrCommit);
-        Blob blob = commit.getBlob(fileName);
+        String blobKey = commit.getBlobKey(fileName);
+        Blob blob = REPO_PATH.getBlob(blobKey);
         if (blob == null) {
             errorAndExit("File does not exist in that commit.");
         }
@@ -342,7 +344,8 @@ public class Repository {
         }
         // 目标分支存在
         for (String fileName : to.getTree().keySet()) {
-            Blob blob = to.getBlob(fileName);
+            String blobKey = to.getBlobKey(fileName);
+            Blob blob = REPO_PATH.getBlob(blobKey);
             if (blob == null) {
                 errorAndExit("File does not exist in that commit.");
             }
@@ -573,19 +576,47 @@ public class Repository {
             }
         }
         // 4. 向远程仓库复制 commit 和 blob
-        Integer remoteLayer = localCommitMap.getOrDefault(Optional.ofNullable(remoteCommit)
-                .map(Commit::getKey)
-                .orElse(null), -1);
         localCommitMap.forEach((commitKey, layer) -> {
-            if (layer <= remoteLayer) return;
             Commit commit = REPO_PATH.getCommit(commitKey);
             List<Blob> blobs = commit.getTree().keySet()
                     .stream()
-                    .map(commit::getBlob)
+                    .map(fileName -> REPO_PATH.getBlob(commit.getBlobKey(fileName)))
                     .collect(Collectors.toList());
             remoteRepositoryPath.saveBlobs(blobs);
             remoteRepositoryPath.saveCommit(commit);
         });
         remoteRepositoryPath.saveBranch(remoteBranchName, currCommit.getKey());
+    }
+
+    /**
+     * fetch
+     *
+     * @param remoteName       远程仓库名
+     * @param remoteBranchName 远程分支名
+     */
+    public static void fetch(String remoteName, String remoteBranchName) {
+        Remote remote = REPO_PATH.getRemote();
+        // 1. 检查远程仓库路径合法性
+        remote.checkRemotePath(remoteName);
+        // 2. 获取远程仓库对应的分支
+        RepositoryPath remoteRepositoryPath = remote.getRepositoryPath(remoteName);
+        String remoteBranch = remoteRepositoryPath.getBranch(remoteBranchName);
+        // 3. 判断分支是否存在
+        if (remoteBranch == null) {
+            errorAndExit("That remote does not have that branch.");
+        }
+        // 4. 向本地仓库复制 commit 和 blob
+        Commit remoteCommit = remoteRepositoryPath.getCommit(remoteBranch);
+        Map<String, Integer> remoteCommitMap = remoteRepositoryPath.bfs(remoteCommit);
+        remoteCommitMap.forEach((commitKey, layer) -> {
+            Commit commit = remoteRepositoryPath.getCommit(commitKey);
+            List<Blob> blobs = commit.getTree().keySet()
+                    .stream()
+                    .map(fileName -> remoteRepositoryPath.getBlob(commit.getBlobKey(fileName)))
+                    .collect(Collectors.toList());
+            REPO_PATH.saveBlobs(blobs);
+            REPO_PATH.saveCommit(commit);
+        });
+        REPO_PATH.saveRemoteBranch(remoteName, remoteBranchName, remoteCommit.getKey());
     }
 }

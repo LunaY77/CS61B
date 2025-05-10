@@ -5,7 +5,7 @@ import static gitlet.Utils.*;
 /**
  * Driver class for Gitlet, a subset of the Git version-control system.
  *
- * @author TODO
+ * @author 苍镜月
  */
 public class Main {
 
@@ -70,9 +70,21 @@ public class Main {
             case "push":
                 push(args);
                 break;
+            case "fetch":
+                fetch(args);
+                break;
             default:
                 message("No command with that name exists.");
         }
+    }
+
+    /**
+     * fetch
+     */
+    private static void fetch(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 3);
+        Repository.fetch(args[1], args[2]);
     }
 
     /**

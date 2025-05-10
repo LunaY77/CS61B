@@ -1,13 +1,12 @@
 package gitlet;
 
-// TODO: any imports you need here
-
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static gitlet.Utils.*;
+import static gitlet.Utils.serialize;
+import static gitlet.Utils.sha1;
 
 /**
  * Represents a gitlet commit object.
@@ -146,12 +145,6 @@ public class Commit implements Serializable {
                 "Merge: " + getFirstParentKey().substring(0, 7) + " " + getSecondParentKey().substring(0, 7) + "\n" +
                 "Date: " + getCreatTime() + "\n" +
                 getMessage() + "\n";
-    }
-
-    public Blob getBlob(String fileName) {
-        String blobKey = getBlobKey(fileName);
-        if (blobKey == null) return null;
-        return readObject(join(Repository.REPO_PATH.BLOBS_DIR(), blobKey), Blob.class);
     }
 
     @Override
