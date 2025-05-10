@@ -317,7 +317,7 @@ public class Repository {
             return;
         }
         // 找到对应的分支Head
-        String commitKey = REPO_PATH.getBranch(branchName);
+        String commitKey = REPO_PATH.getBranchNotNull(branchName);
         Commit targetCommit = REPO_PATH.getCommit(commitKey);
         Commit currCommit = REPO_PATH.getCurrCommit();
 
@@ -439,12 +439,12 @@ public class Repository {
         REPO_PATH.checkBranchNotExistsAndThrow(branchName);
         // 获取当前分支和目标分支
         Commit base = REPO_PATH.getCurrCommit();
-        Commit target = REPO_PATH.getCommit(REPO_PATH.getBranch(branchName));
+        Commit target = REPO_PATH.getCommit(REPO_PATH.getBranchNotNull(branchName));
 
         checkUntrackedFiles(base, target);
 
         // 找到相交节点
-        Commit splitPoint = findSplitPoint(base, target);
+        Commit splitPoint = REPO_PATH.findSplitPoint(base, target);
         // 1. 如果相交节点是目标节点，表示目标节点是当前节点的祖先
         if (Objects.equals(splitPoint, target)) {
             message("Given branch is an ancestor of the current branch.");
@@ -529,49 +529,6 @@ public class Repository {
     }
 
     /**
-     * 找到公共父节点
-     *
-     * @param base   base commit
-     * @param target target commit
-     * @return 公共父节点
-     */
-    private static Commit findSplitPoint(Commit base, Commit target) {
-        Map<String, Integer> baseAncestorLayerMap = bfs(base);
-        Map<String, Integer> targetAncestorLayerMap = bfs(target);
-
-        String commitId = null;
-        int layer = Integer.MAX_VALUE;
-        for (String targetKey : targetAncestorLayerMap.keySet()) {
-            if (baseAncestorLayerMap.containsKey(targetKey) && layer > baseAncestorLayerMap.get(targetKey)) {
-                commitId = targetKey;
-                layer = baseAncestorLayerMap.get(targetKey);
-            }
-        }
-        return REPO_PATH.getCommit(commitId);
-    }
-
-    private static Map<String, Integer> bfs(Commit base) {
-        Map<String, Integer> map = new HashMap<>();
-        Queue<Pair> q = new LinkedList<>();
-        q.add(new Pair(base.getKey(), 0));
-
-        while (!q.isEmpty()) {
-            Pair cur = q.poll();
-            String key = cur.key;
-            int layer = cur.layer;
-            map.put(key, layer);
-            Commit commit = REPO_PATH.getCommit(key);
-            if (commit.getFirstParentKey() != null) {
-                q.add(new Pair(commit.getFirstParentKey(), layer + 1));
-            }
-            if (commit.getSecondParentKey() != null) {
-                q.add(new Pair(commit.getSecondParentKey(), layer + 1));
-            }
-        }
-        return map;
-    }
-
-    /**
      * add-remote 添加远程仓库
      *
      * @param remoteName 远程仓库名
@@ -602,7 +559,33 @@ public class Repository {
         Remote remote = REPO_PATH.getRemote();
         // 1. 检查远程仓库路径合法性
         remote.checkRemotePath(remoteName);
+        // 2. 获取远程仓库对应分支
         RepositoryPath remoteRepositoryPath = remote.getRepositoryPath(remoteName);
-
+        String remoteBranch = remoteRepositoryPath.getBranch(remoteBranchName);
+        // 3. 如果分支不为空，需要判断 Head Commit 是否在本地历史中
+        Commit currCommit = REPO_PATH.getCurrCommit();
+        Map<String, Integer> localCommitMap = REPO_PATH.bfs(currCommit);
+        Commit remoteCommit = remoteRepositoryPath.getCommit(remoteBranch);
+        if (remoteCommit != null) {
+            // Head Commit 不存在
+            if (!localCommitMap.containsKey(remoteCommit.getKey())) {
+                errorAndExit("Please pull down remote changes before pushing.");
+            }
+        }
+        // 4. 向远程仓库复制 commit 和 blob
+        Integer remoteLayer = localCommitMap.getOrDefault(Optional.ofNullable(remoteCommit)
+                .map(Commit::getKey)
+                .orElse(null), -1);
+        localCommitMap.forEach((commitKey, layer) -> {
+            if (layer <= remoteLayer) return;
+            Commit commit = REPO_PATH.getCommit(commitKey);
+            List<Blob> blobs = commit.getTree().keySet()
+                    .stream()
+                    .map(commit::getBlob)
+                    .collect(Collectors.toList());
+            remoteRepositoryPath.saveBlobs(blobs);
+            remoteRepositoryPath.saveCommit(commit);
+        });
+        remoteRepositoryPath.saveBranch(remoteBranchName, currCommit.getKey());
     }
 }

@@ -2,8 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -202,17 +201,31 @@ public class RepositoryPath implements Serializable {
     }
 
     /**
-     * 根据分支名获取分支
+     * 根据分支名获取分支(不允许为空)
      *
      * @param branchName 分支名
      * @return Head Commit Key
      */
-    public String getBranch(String branchName) {
+    public String getBranchNotNull(String branchName) {
         List<String> branches = plainFilenamesIn(HEADS_DIR());
         if (branches == null || branches.stream().noneMatch(b -> b.equals(branchName))) {
             errorAndExit("No such branch exists.");
         }
         return readContentsAsString(join(HEADS_DIR(), branchName));
+    }
+
+    /**
+     * 根据分支名获取分支(允许为空)
+     *
+     * @param branchName 分支名
+     * @return Head Commit Key
+     */
+    public String getBranch(String branchName) {
+        File branchFile = join(HEADS_DIR(), branchName);
+        if (!branchFile.exists()) {
+            return null;
+        }
+        return readContentsAsString(branchFile);
     }
 
     /**
@@ -294,5 +307,57 @@ public class RepositoryPath implements Serializable {
      */
     public void saveStage(Stage stage) {
         writeObject(STAGE(), stage);
+    }
+
+    /**
+     * 找到公共父节点
+     *
+     * @param base   base commit
+     * @param target target commit
+     * @return 公共父节点
+     */
+    public Commit findSplitPoint(Commit base, Commit target) {
+        Map<String, Integer> baseAncestorLayerMap = bfs(base);
+        Map<String, Integer> targetAncestorLayerMap = bfs(target);
+
+        String commitId = null;
+        int layer = Integer.MAX_VALUE;
+        for (String targetKey : targetAncestorLayerMap.keySet()) {
+            if (baseAncestorLayerMap.containsKey(targetKey) && layer > baseAncestorLayerMap.get(targetKey)) {
+                commitId = targetKey;
+                layer = baseAncestorLayerMap.get(targetKey);
+            }
+        }
+        return getCommit(commitId);
+    }
+
+    public Map<String, Integer> bfs(Commit base) {
+        Map<String, Integer> map = new HashMap<>();
+        Queue<Pair> q = new LinkedList<>();
+        q.add(new Pair(base.getKey(), 0));
+
+        while (!q.isEmpty()) {
+            Pair cur = q.poll();
+            String key = cur.key;
+            int layer = cur.layer;
+            map.put(key, layer);
+            Commit commit = getCommit(key);
+            if (commit.getFirstParentKey() != null) {
+                q.add(new Pair(commit.getFirstParentKey(), layer + 1));
+            }
+            if (commit.getSecondParentKey() != null) {
+                q.add(new Pair(commit.getSecondParentKey(), layer + 1));
+            }
+        }
+        return map;
+    }
+
+    /**
+     * 批量保存 blob
+     *
+     * @param blobs blobs
+     */
+    public void saveBlobs(List<Blob> blobs) {
+        blobs.forEach(b -> writeObject(join(BLOBS_DIR(), b.getKey()), b));
     }
 }
