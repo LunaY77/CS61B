@@ -31,7 +31,7 @@ public class Stage implements Serializable {
      */
     public void addFile(String fileName, String hash) {
         addFiles.put(fileName, hash);
-        Repository.saveStage(this);
+        Repository.REPO_PATH.saveStage(this);
     }
 
     /**
@@ -41,7 +41,7 @@ public class Stage implements Serializable {
      */
     public void cancelAdd(String fileName) {
         addFiles.remove(fileName);
-        Repository.saveStage(this);
+        Repository.REPO_PATH.saveStage(this);
     }
 
     /**
@@ -51,7 +51,7 @@ public class Stage implements Serializable {
      */
     public void cancelRemove(String fileName) {
         removeFiles.remove(fileName);
-        Repository.saveStage(this);
+        Repository.REPO_PATH.saveStage(this);
     }
 
     /**
@@ -89,7 +89,7 @@ public class Stage implements Serializable {
     public void clear() {
         addFiles.clear();
         removeFiles.clear();
-        Repository.saveStage(this);
+        Repository.REPO_PATH.saveStage(this);
     }
 
     public Map<String, String> getAddFiles() {
@@ -107,7 +107,7 @@ public class Stage implements Serializable {
      */
     public void removeFile(String fileName) {
         removeFiles.add(fileName);
-        Repository.saveStage(this);
+        Repository.REPO_PATH.saveStage(this);
     }
 
     @Override

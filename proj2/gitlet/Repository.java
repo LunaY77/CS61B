@@ -11,34 +11,12 @@ import static gitlet.Utils.*;
  * Represents a gitlet repository.
  * does at a high level.
  * <br>
- * .gitlet
- * ├── objects
- *      ├── commits
- *      └── blobs
- * └── refs
- *      ├── heads
- *      └── remotes
- *          └── origin
- *              └── main
- * └── stage
- * └── HEAD
- * └── FETCH_HEAD
  *
  * @author 苍镜月
  */
 public class Repository {
 
-    public static final RepositoryPath REPO_PATH = new RepositoryPath(System.getProperty("user.dir"));
-
-    /**
-     * 校验是否存在.gitlet目录
-     */
-    private static void checkRepositoryExists() {
-        // 不在初始化 gitlet 工作目录
-        if (!REPO_PATH.GITLET_DIR().exists()) {
-            errorAndExit("Not in an initialized Gitlet directory.");
-        }
-    }
+    public static final RepositoryPath REPO_PATH = new RepositoryPath();
 
     public static void init() {
         // 文件夹已存在
@@ -68,7 +46,7 @@ public class Repository {
      */
     private static void initRemote() {
         Remote remote = new Remote();
-        saveRemote(remote);
+        REPO_PATH.saveRemote(remote);
     }
 
     /**
@@ -76,25 +54,7 @@ public class Repository {
      */
     private static void initStage() {
         Stage stage = new Stage();
-        saveStage(stage);
-    }
-
-    /**
-     * 保存 commit
-     *
-     * @param commit {@link Commit}
-     */
-    public static void saveCommit(Commit commit) {
-        writeObject(join(REPO_PATH.COMMITS_DIR(), commit.getKey()), commit);
-    }
-
-    /**
-     * 保存 stage
-     *
-     * @param stage {@link Stage}
-     */
-    public static void saveStage(Stage stage) {
-        writeObject(REPO_PATH.STAGE(), stage);
+        REPO_PATH.saveStage(stage);
     }
 
     /**
@@ -111,28 +71,17 @@ public class Repository {
         byte[] fileContent = readContents(file);
         String key = sha1(fileContent);
         // 读取暂存区
-        Stage stage = getStage();
+        Stage stage = REPO_PATH.getStage();
         // 如果有删除记录，删除 rm
         stage.cancelRemove(fileName);
         // 如果不存在 blob 且无同一 hash 的 blob，则添加 blob
-        Commit curCommit = getCurrCommit();
+        Commit curCommit = REPO_PATH.getCurrCommit();
         String blobKey = curCommit.getBlobKey(fileName);
         // 如果当前提交中没有该文件，或者文件内容已经改变，则添加
         if (!key.equals(blobKey)) {
-            createAndSaveBlob(key, fileContent, fileName);
+            REPO_PATH.createAndSaveBlob(key, fileContent, fileName);
             stage.addFile(fileName, key);
         }
-    }
-
-    /**
-     * 创建并保存 Blob
-     *
-     * @param fileContent 文件内容
-     * @param fileName    文件名
-     */
-    private static void createAndSaveBlob(String key, byte[] fileContent, String fileName) {
-        Blob blob = new Blob(key, fileContent, fileName);
-        writeObject(join(REPO_PATH.BLOBS_DIR(), key), blob);
     }
 
     /**
@@ -142,7 +91,7 @@ public class Repository {
      */
     public static void commit(String message) {
         // 创建新的commit
-        Commit commit = new Commit(message, getCurrCommit(), new Date());
+        Commit commit = new Commit(message, REPO_PATH.getCurrCommit(), new Date());
         doCommit(commit);
     }
 
@@ -153,7 +102,7 @@ public class Repository {
      * @param otherCommit 另一个 commit
      */
     public static void commit(String message, Commit otherCommit) {
-        Commit commit = new Commit(message, getCurrCommit(), otherCommit, new Date());
+        Commit commit = new Commit(message, REPO_PATH.getCurrCommit(), otherCommit, new Date());
         doCommit(commit);
     }
 
@@ -163,7 +112,7 @@ public class Repository {
      * @param commit {@link Commit}
      */
     private static void doCommit(Commit commit) {
-        Stage stage = getStage();
+        Stage stage = REPO_PATH.getStage();
         // 添加暂存区文件
         Map<String, String> tree = commit.getTree();
         Map<String, String> addFiles = stage.getAddFiles();
@@ -175,13 +124,12 @@ public class Repository {
             tree.remove(key);
         }
         // 保存 commit
-        saveCommit(commit);
+        REPO_PATH.saveCommit(commit);
         // 更新 branch
-        saveBranch(getCurrBranch(), commit.getKey());
+        REPO_PATH.saveBranch(REPO_PATH.getCurrBranch(), commit.getKey());
         // 清空暂存区
         cleanStage();
     }
-
 
     /**
      * 初始提交 + 初始化分支
@@ -189,134 +137,11 @@ public class Repository {
     private static void initialCommitAndBranch() {
         // 初始提交
         Commit commit = Commit.initialCommit();
-        saveCommit(commit);
+        REPO_PATH.saveCommit(commit);
         // 初始化分支
-        saveBranchAndCheckout("master", commit.getKey());
+        REPO_PATH.saveBranchAndCheckout("master", commit.getKey());
     }
 
-    /**
-     * 保存分支信息同时将头指针指向该分支
-     *
-     * @param branchName 分支名
-     * @param commitKey  commitId
-     */
-    public static void saveBranchAndCheckout(String branchName, String commitKey) {
-        writeContents(REPO_PATH.HEAD(), branchName);
-        writeContents(join(REPO_PATH.HEADS_DIR(), branchName), commitKey);
-    }
-
-    /**
-     * 保存分支信息
-     *
-     * @param branchName 分支名
-     * @param commitKey  commitId
-     */
-    private static void saveBranch(String branchName, String commitKey) {
-        writeContents(join(REPO_PATH.HEADS_DIR(), branchName), commitKey);
-    }
-
-    /**
-     * 获取当前暂存区信息
-     *
-     * @return 暂存区信息
-     */
-    public static Stage getStage() {
-        return readObject(REPO_PATH.STAGE(), Stage.class);
-    }
-
-    /**
-     * 从 objects 文件夹下获取当前 Commit
-     *
-     * @return 当前 Commit
-     */
-    private static Commit getCurrCommit() {
-        String currCommitId = getCurrCommitId();
-        return readObject(join(REPO_PATH.COMMITS_DIR(), currCommitId), Commit.class);
-    }
-
-    /**
-     * 从 objects 文件夹下获取 Commit
-     *
-     * @param commitId commit key
-     * @return Commit
-     */
-    private static Commit getCommit(String commitId) {
-        if (commitId == null) {
-            return null;
-        }
-        List<String> matchingCommits = findMatchingCommits(commitId);
-        // 如果文件不止一个 或者 文件不存在
-        if (matchingCommits.size() != 1 || !join(REPO_PATH.COMMITS_DIR(), matchingCommits.get(0)).exists()) {
-            errorAndExit("No commit with that id exists.");
-        }
-        return readObject(join(REPO_PATH.COMMITS_DIR(), matchingCommits.get(0)), Commit.class);
-    }
-
-    private static List<String> findMatchingCommits(String prefix) {
-        List<String> commitKeys = plainFilenamesIn(REPO_PATH.COMMITS_DIR());
-        List<String> res = new ArrayList<>();
-        for (String commitKey : commitKeys) {
-            if (commitKey.startsWith(prefix)) {
-                res.add(commitKey);
-            }
-        }
-        return res;
-    }
-
-    /**
-     * 从 ref/heads 文件夹中获取当前 Commit ID
-     *
-     * @return 当前 Commit ID
-     */
-    private static String getCurrCommitId() {
-        String currBranch = getCurrBranch();
-        return readContentsAsString(join(REPO_PATH.HEADS_DIR(), currBranch));
-    }
-
-    /**
-     * 从 HEAD 文件中获取当前分支名字
-     *
-     * @return 当前分支名字
-     */
-    private static String getCurrBranch() {
-        return readContentsAsString(REPO_PATH.HEAD());
-    }
-
-    /**
-     * 根据分支名获取分支
-     *
-     * @param branchName 分支名
-     * @return Head Commit Key
-     */
-    private static String getBranch(String branchName) {
-        List<String> branches = plainFilenamesIn(REPO_PATH.HEADS_DIR());
-        if (branches == null || branches.stream().noneMatch(b -> b.equals(branchName))) {
-            errorAndExit("No such branch exists.");
-        }
-        return readContentsAsString(join(REPO_PATH.HEADS_DIR(), branchName));
-    }
-
-    /**
-     * 如果分支名已存在则抛出异常
-     *
-     * @param branchName 分支名
-     */
-    private static void checkBranchExistsAndThrow(String branchName) {
-        if (join(REPO_PATH.HEADS_DIR(), branchName).exists()) {
-            errorAndExit("A branch with that name already exists.");
-        }
-    }
-
-    /**
-     * 如果分支名不存在则抛出异常
-     *
-     * @param branchName 分支名
-     */
-    private static void checkBranchNotExistsAndThrow(String branchName) {
-        if (!join(REPO_PATH.HEADS_DIR(), branchName).exists()) {
-            errorAndExit("A branch with that name does not exist.");
-        }
-    }
 
     /**
      * rm 删除暂存区的文件或者已提交的文件
@@ -324,8 +149,8 @@ public class Repository {
      * @param fileName 文件名
      */
     public static void rm(String fileName) {
-        Stage stage = getStage();
-        Commit commit = getCurrCommit();
+        Stage stage = REPO_PATH.getStage();
+        Commit commit = REPO_PATH.getCurrCommit();
         if (!stage.isAdded(fileName) && !commit.hasFile(fileName)) {
             errorAndExit("No reason to remove the file.");
         }
@@ -346,10 +171,10 @@ public class Repository {
      * log 日志，从当前提交开始到初始提交
      */
     public static void log() {
-        Commit commit = getCurrCommit();
+        Commit commit = REPO_PATH.getCurrCommit();
         while (commit != null) {
             message("%s", commit);
-            commit = getCommit(commit.getFirstParentKey());
+            commit = REPO_PATH.getCommit(commit.getFirstParentKey());
         }
     }
 
@@ -359,7 +184,7 @@ public class Repository {
     public static void globalLog() {
         List<String> commitKeys = plainFilenamesIn(REPO_PATH.COMMITS_DIR());
         for (String commitKey : commitKeys) {
-            message("%s", getCommit(commitKey));
+            message("%s", REPO_PATH.getCommit(commitKey));
         }
     }
 
@@ -372,7 +197,7 @@ public class Repository {
         List<String> commitKeys = plainFilenamesIn(REPO_PATH.COMMITS_DIR());
         boolean exist = false;
         for (String commitKey : commitKeys) {
-            if (getCommit(commitKey).getMessage().equals(message)) {
+            if (REPO_PATH.getCommit(commitKey).getMessage().equals(message)) {
                 message("%s", commitKey);
                 exist = true;
             }
@@ -386,11 +211,11 @@ public class Repository {
      * status 当前分支状态
      */
     public static void status() {
-        Stage stage = getStage();
-        Commit commit = getCurrCommit();
+        Stage stage = REPO_PATH.getStage();
+        Commit commit = REPO_PATH.getCurrCommit();
 
         // === Branches ===
-        String currBranch = getCurrBranch();
+        String currBranch = REPO_PATH.getCurrBranch();
         List<String> branches = plainFilenamesIn(REPO_PATH.HEADS_DIR());
         message("=== Branches ===");
         for (String branch : branches) {
@@ -459,8 +284,8 @@ public class Repository {
      */
     public static void checkoutCommit(String commitId, String fileName) {
         Commit commit = Optional.ofNullable(commitId)
-                .map(Repository::getCommit)
-                .orElseGet(Repository::getCurrCommit);
+                .map(REPO_PATH::getCommit)
+                .orElseGet(REPO_PATH::getCurrCommit);
         Blob blob = commit.getBlob(fileName);
         if (blob == null) {
             errorAndExit("File does not exist in that commit.");
@@ -485,20 +310,20 @@ public class Repository {
      * @param branchName 分支名称
      */
     public static void checkoutBranch(String branchName) {
-        String currBranch = getCurrBranch();
+        String currBranch = REPO_PATH.getCurrBranch();
         // checkout 当前分支
         if (currBranch.equals(branchName)) {
             message("No need to checkout the current branch.");
             return;
         }
         // 找到对应的分支Head
-        String commitKey = getBranch(branchName);
-        Commit targetCommit = getCommit(commitKey);
-        Commit currCommit = getCurrCommit();
+        String commitKey = REPO_PATH.getBranch(branchName);
+        Commit targetCommit = REPO_PATH.getCommit(commitKey);
+        Commit currCommit = REPO_PATH.getCurrCommit();
 
         // checkout
         checkout(currCommit, targetCommit);
-        saveBranchAndCheckout(branchName, targetCommit.getKey());
+        REPO_PATH.saveBranchAndCheckout(branchName, targetCommit.getKey());
     }
 
     /**
@@ -544,7 +369,7 @@ public class Repository {
      * 清空暂存区
      */
     private static void cleanStage() {
-        getStage().clear();
+        REPO_PATH.getStage().clear();
     }
 
     /**
@@ -553,8 +378,8 @@ public class Repository {
      * @param branchName 分支名
      */
     public static void branch(String branchName) {
-        checkBranchExistsAndThrow(branchName);
-        saveBranch(branchName, getCurrCommitId());
+        REPO_PATH.checkBranchExistsAndThrow(branchName);
+        REPO_PATH.saveBranch(branchName, REPO_PATH.getCurrCommitId());
     }
 
     /**
@@ -563,8 +388,8 @@ public class Repository {
      * @param branchName 分支名
      */
     public static void rmBranch(String branchName) {
-        checkBranchNotExistsAndThrow(branchName);
-        String currBranch = getCurrBranch();
+        REPO_PATH.checkBranchNotExistsAndThrow(branchName);
+        String currBranch = REPO_PATH.getCurrBranch();
         // 不能删除当前分支
         if (currBranch.equals(branchName)) {
             errorAndExit("Cannot remove the current branch.");
@@ -579,11 +404,11 @@ public class Repository {
      * @param commitKey 分支 id
      */
     public static void reset(String commitKey) {
-        Commit targetCommit = Repository.getCommit(commitKey);
-        Commit currCommit = getCurrCommit();
+        Commit targetCommit = REPO_PATH.getCommit(commitKey);
+        Commit currCommit = REPO_PATH.getCurrCommit();
         checkout(currCommit, targetCommit);
         // 依然保持在当前分支，只是 HEAD 可能指向其他分支所在的 commit
-        saveBranch(getCurrBranch(), targetCommit.getKey());
+        REPO_PATH.saveBranch(REPO_PATH.getCurrBranch(), targetCommit.getKey());
     }
 
     /**
@@ -602,19 +427,19 @@ public class Repository {
      */
     public static void merge(String branchName) {
         // 暂存区是否为空
-        if (!getStage().isEmpty()) {
+        if (!REPO_PATH.getStage().isEmpty()) {
             errorAndExit("You have uncommitted changes.");
         }
         // 是否和自己合并
-        String currBranchName = getCurrBranch();
+        String currBranchName = REPO_PATH.getCurrBranch();
         if (currBranchName.equals(branchName)) {
             errorAndExit("Cannot merge a branch with itself.");
         }
         // 检查 branch 是否存在
-        checkBranchNotExistsAndThrow(branchName);
+        REPO_PATH.checkBranchNotExistsAndThrow(branchName);
         // 获取当前分支和目标分支
-        Commit base = getCurrCommit();
-        Commit target = getCommit(getBranch(branchName));
+        Commit base = REPO_PATH.getCurrCommit();
+        Commit target = REPO_PATH.getCommit(REPO_PATH.getBranch(branchName));
 
         checkUntrackedFiles(base, target);
 
@@ -629,7 +454,7 @@ public class Repository {
         if (Objects.equals(splitPoint, base)) {
             message("Current branch fast-forwarded.");
             checkout(base, target);
-            saveBranchAndCheckout(branchName, target.getKey());
+            REPO_PATH.saveBranchAndCheckout(branchName, target.getKey());
             return;
         }
         // 3. 合并 merge
@@ -646,7 +471,7 @@ public class Repository {
      * @param split  公共父节点
      */
     private static void mergeFiles(Commit base, Commit target, Commit split) {
-        Stage stage = getStage();
+        Stage stage = REPO_PATH.getStage();
         Map<String, String> baseCommitTree = base.getTree();
         Map<String, String> targetCommitTree = target.getTree();
         Map<String, String> splitCommitTree = split.getTree();
@@ -696,7 +521,7 @@ public class Repository {
                         (targetBlobKey == null ? "" : new String(readObject(join(REPO_PATH.BLOBS_DIR(), targetBlobKey), Blob.class).getContent(), StandardCharsets.UTF_8)) +
                         ">>>>>>>\n").getBytes(StandardCharsets.UTF_8);
                 String mergeBlobKey = sha1(content);
-                createAndSaveBlob(mergeBlobKey, content, fileName);
+                REPO_PATH.createAndSaveBlob(mergeBlobKey, content, fileName);
                 stage.addFile(fileName, mergeBlobKey);
                 writeContents(join(REPO_PATH.CWD(), fileName), content);
             }
@@ -722,7 +547,7 @@ public class Repository {
                 layer = baseAncestorLayerMap.get(targetKey);
             }
         }
-        return getCommit(commitId);
+        return REPO_PATH.getCommit(commitId);
     }
 
     private static Map<String, Integer> bfs(Commit base) {
@@ -735,7 +560,7 @@ public class Repository {
             String key = cur.key;
             int layer = cur.layer;
             map.put(key, layer);
-            Commit commit = getCommit(key);
+            Commit commit = REPO_PATH.getCommit(key);
             if (commit.getFirstParentKey() != null) {
                 q.add(new Pair(commit.getFirstParentKey(), layer + 1));
             }
@@ -753,7 +578,7 @@ public class Repository {
      * @param remotePath 远程仓库路径
      */
     public static void addRemote(String remoteName, String remotePath) {
-        Remote remote = getRemote();
+        Remote remote = REPO_PATH.getRemote();
         remote.addRemote(remoteName, remotePath);
     }
 
@@ -763,25 +588,21 @@ public class Repository {
      * @param remoteName 远程仓库
      */
     public static void removeRemote(String remoteName) {
-        Remote remote = getRemote();
+        Remote remote = REPO_PATH.getRemote();
         remote.removeRemote(remoteName);
     }
 
     /**
-     * 获取远程分支对象
+     * push 推送到远程仓库
      *
-     * @return 远程分支对象
+     * @param remoteName       远程仓库名
+     * @param remoteBranchName 远程分支名
      */
-    private static Remote getRemote() {
-        return readObject(REPO_PATH.REMOTE(), Remote.class);
-    }
+    public static void push(String remoteName, String remoteBranchName) {
+        Remote remote = REPO_PATH.getRemote();
+        // 1. 检查远程仓库路径合法性
+        remote.checkRemotePath(remoteName);
+        RepositoryPath remoteRepositoryPath = remote.getRepositoryPath(remoteName);
 
-    /**
-     * 保存远程分支对象
-     *
-     * @param remote 远程分支对象
-     */
-    public static void saveRemote(Remote remote) {
-        writeObject(REPO_PATH.REMOTE(), remote);
     }
 }

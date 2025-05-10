@@ -67,9 +67,21 @@ public class Main {
             case "rm-remote":
                 removeRemote(args);
                 break;
+            case "push":
+                push(args);
+                break;
             default:
                 message("No command with that name exists.");
         }
+    }
+
+    /**
+     * push
+     */
+    private static void push(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 3);
+        Repository.push(args[1], args[2]);
     }
 
     /**
@@ -211,7 +223,7 @@ public class Main {
             errorAndExit("Please enter a commit message.");
         }
         // 暂存区中无文件
-        Stage stage = Repository.getStage();
+        Stage stage = Repository.REPO_PATH.getStage();
         if (stage.isEmpty()) {
             errorAndExit("No changes added to the commit.");
         }

@@ -1,11 +1,10 @@
 package gitlet;
 
-import java.io.File;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import static gitlet.Utils.*;
+import static gitlet.Utils.errorAndExit;
 
 /**
  * @author 苍镜月
@@ -20,7 +19,7 @@ public class Remote implements Serializable {
      * key: 远程仓库名
      * value: 远程仓库路径
      */
-    private Map<String, String> remoteMap;
+    private Map<String, RepositoryPath> remoteMap;
 
     public Remote() {
         remoteMap = new HashMap<>();
@@ -34,8 +33,10 @@ public class Remote implements Serializable {
      */
     public void addRemote(String remoteName, String remotePath) {
         checkRemoteNameExistsAndThrow(remoteName);
-        remoteMap.put(remoteName, remotePath);
-        Repository.saveRemote(this);
+        // 去掉/.gitlet后缀
+        String actualRemotePath = remotePath.substring(0, remotePath.length() - 8);
+        remoteMap.put(remoteName, new RepositoryPath(actualRemotePath));
+        Repository.REPO_PATH.saveRemote(this);
     }
 
     /**
@@ -46,7 +47,7 @@ public class Remote implements Serializable {
     public void removeRemote(String remoteName) {
         checkRemoteNameNotExistsAndThrow(remoteName);
         remoteMap.remove(remoteName);
-        Repository.saveRemote(this);
+        Repository.REPO_PATH.saveRemote(this);
     }
 
     /**
@@ -69,5 +70,30 @@ public class Remote implements Serializable {
         if (!remoteMap.containsKey(remoteName)) {
             errorAndExit("A remote with that name does not exist.");
         }
+    }
+
+    /**
+     * 校验远程仓库路径合法性
+     *
+     * @param remoteName 远程仓库名
+     */
+    public void checkRemotePath(String remoteName) {
+        // 校验仓库名字是否存在
+        checkRemoteNameNotExistsAndThrow(remoteName);
+        RepositoryPath remoteRepositoryPath = remoteMap.get(remoteName);
+        // 校验.gitlet文件夹是否存在
+        if (!remoteRepositoryPath.GITLET_DIR().exists()) {
+            errorAndExit("Remote directory not found.");
+        }
+    }
+
+    /**
+     * 获取远程仓库路径
+     *
+     * @param remoteName 远程仓库名
+     * @return 远程仓库路径
+     */
+    public RepositoryPath getRepositoryPath(String remoteName) {
+        return remoteMap.get(remoteName);
     }
 }
