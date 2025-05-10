@@ -64,6 +64,15 @@ public class Stage implements Serializable {
         return addFiles.containsKey(fileName);
     }
 
+    /**
+     * 文件是否在暂存区中删除
+     *
+     * @param fileName 文件名
+     * @return 是否删除
+     */
+    public boolean isRemove(String fileName) {
+        return removeFiles.contains(fileName);
+    }
 
     /**
      * 暂存区是否为空

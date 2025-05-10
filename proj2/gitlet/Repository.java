@@ -3,6 +3,7 @@ package gitlet;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static gitlet.Constant.*;
 import static gitlet.Utils.*;
@@ -375,8 +376,9 @@ public class Repository {
      */
     public static void status() {
         Stage stage = getStage();
+        Commit commit = getCurrCommit();
 
-        // Branches
+        // === Branches ===
         String currBranch = getCurrBranch();
         List<String> branches = plainFilenamesIn(HEADS_DIR);
         message("=== Branches ===");
@@ -389,24 +391,51 @@ public class Repository {
         }
         System.out.println();
 
-        // Staged Files
+        // === Staged Files ===
         message("=== Staged Files ===");
-        for (String filePath : stage.getAddFiles().keySet()) {
-            message("%s", filePath);
+        Set<String> addFiles = stage.getAddFiles().keySet();
+        addFiles.forEach(Utils::message);
+        System.out.println();
+
+        // === Removed Files ===
+        message("=== Removed Files ===");
+        Set<String> removeFiles = new HashSet<>(stage.getRemoveFiles());
+        removeFiles.forEach(Utils::message);
+        System.out.println();
+
+        // === Modifications Not Staged For Commit ===
+        message("=== Modifications Not Staged For Commit ===");
+        Map<String, String> commitTree = commit.getTree();
+        Set<String> trackedFiles = commitTree.keySet();
+        // 文件路径基于字典序排序
+        List<String> sortedFilePaths = trackedFiles.stream().sorted().collect(Collectors.toList());
+        for (String filePath : sortedFilePaths) {
+            File file = join(CWD, filePath);
+            if (file.exists()) {
+                // 文件存在，基于sha1哈希值判断是否修改
+                String contentKey = sha1(readContents(file));
+                if (!Objects.equals(contentKey, commitTree.get(filePath))) {
+                    message("%s (modified)", filePath);
+                }
+            } else {
+                // 文件不存在，判断暂存区是否已添加删除，如果没有则打印
+                if (!stage.isRemove(filePath)) {
+                    message("%s (deleted)", filePath);
+                }
+            }
         }
         System.out.println();
 
-        // Removed Files
-        message("=== Removed Files ===");
-        stage.getRemoveFiles().forEach(System.out::println);
-        System.out.println();
-
-        // todo === Modifications Not Staged For Commit ===
-        message("=== Modifications Not Staged For Commit ===");
-        System.out.println();
-
-        // todo === Untracked Files ===
+        // === Untracked Files ===
         message("=== Untracked Files ===");
+        List<String> allFiles = plainFilenamesIn(CWD);
+        for (String file : allFiles) {
+            if (!trackedFiles.contains(file)
+                    && !addFiles.contains(file)
+                    && !removeFiles.contains(file)) {
+                message(file);
+            }
+        }
         System.out.println();
     }
 
