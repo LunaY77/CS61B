@@ -1,8 +1,5 @@
 package gitlet;
 
-import java.io.File;
-
-import static gitlet.Constant.GITLET_DIR;
 import static gitlet.Utils.*;
 
 /**
@@ -253,7 +250,7 @@ public class Main {
      */
     private static void checkRepositoryExists() {
         // 不在初始化 gitlet 工作目录
-        if (!GITLET_DIR.exists()) {
+        if (!Repository.REPO_PATH.GITLET_DIR().exists()) {
             message("Not in an initialized Gitlet directory.");
             System.exit(0);
         }

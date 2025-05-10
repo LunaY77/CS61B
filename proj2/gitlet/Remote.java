@@ -1,10 +1,11 @@
 package gitlet;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import static gitlet.Utils.errorAndExit;
+import static gitlet.Utils.*;
 
 /**
  * @author 苍镜月
@@ -16,8 +17,8 @@ public class Remote implements Serializable {
 
     /**
      * remote 信息
-     * key: 远程分支名
-     * value: 远程分支路径
+     * key: 远程仓库名
+     * value: 远程仓库路径
      */
     private Map<String, String> remoteMap;
 
@@ -28,8 +29,8 @@ public class Remote implements Serializable {
     /**
      * 添加远程分支信息
      *
-     * @param remoteName 远程分支名
-     * @param remotePath 远程分支路径
+     * @param remoteName 远程仓库名
+     * @param remotePath 远程仓库路径
      */
     public void addRemote(String remoteName, String remotePath) {
         checkRemoteNameExistsAndThrow(remoteName);
@@ -38,9 +39,9 @@ public class Remote implements Serializable {
     }
 
     /**
-     * 删除远程分支信息
+     * 删除远程仓库信息
      *
-     * @param remoteName 远程分支名
+     * @param remoteName 远程仓库名
      */
     public void removeRemote(String remoteName) {
         checkRemoteNameNotExistsAndThrow(remoteName);
@@ -49,9 +50,9 @@ public class Remote implements Serializable {
     }
 
     /**
-     * 如果远程分支名字存在则抛出异常
+     * 如果远程仓库名字存在则抛出异常
      *
-     * @param remoteName 远程分支名
+     * @param remoteName 远程仓库名
      */
     private void checkRemoteNameExistsAndThrow(String remoteName) {
         if (remoteMap.containsKey(remoteName)) {
@@ -60,9 +61,9 @@ public class Remote implements Serializable {
     }
 
     /**
-     * 如果远程分支名不存在则抛出异常
+     * 如果远程仓库名不存在则抛出异常
      *
-     * @param remoteName 远程分支名
+     * @param remoteName 远程仓库名
      */
     private void checkRemoteNameNotExistsAndThrow(String remoteName) {
         if (!remoteMap.containsKey(remoteName)) {

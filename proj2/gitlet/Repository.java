@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static gitlet.Constant.*;
 import static gitlet.Utils.*;
 
 /**
@@ -29,21 +28,33 @@ import static gitlet.Utils.*;
  */
 public class Repository {
 
+    public static final RepositoryPath REPO_PATH = new RepositoryPath(System.getProperty("user.dir"));
+
+    /**
+     * 校验是否存在.gitlet目录
+     */
+    private static void checkRepositoryExists() {
+        // 不在初始化 gitlet 工作目录
+        if (!REPO_PATH.GITLET_DIR().exists()) {
+            errorAndExit("Not in an initialized Gitlet directory.");
+        }
+    }
+
     public static void init() {
         // 文件夹已存在
-        if (GITLET_DIR.exists()) {
+        if (REPO_PATH.GITLET_DIR().exists()) {
             message("A Gitlet version-control system already exists in the current directory.");
             return;
         }
         // 创建.gitlet文件夹
-        mkdir(GITLET_DIR);
+        mkdir(REPO_PATH.GITLET_DIR());
         // 创建 obj 文件夹及其子文件夹
-        mkdir(OBJECTS_DIR);
-        mkdir(COMMITS_DIR);
-        mkdir(BLOBS_DIR);
+        mkdir(REPO_PATH.OBJECTS_DIR());
+        mkdir(REPO_PATH.COMMITS_DIR());
+        mkdir(REPO_PATH.BLOBS_DIR());
         // 创建 refs 文件夹及其子文件夹
-        mkdir(REFS_DIR);
-        mkdir(HEADS_DIR);
+        mkdir(REPO_PATH.REFS_DIR());
+        mkdir(REPO_PATH.HEADS_DIR());
         // 创建 Remote 对象
         initRemote();
         // 创建 stage 文件
@@ -74,7 +85,7 @@ public class Repository {
      * @param commit {@link Commit}
      */
     public static void saveCommit(Commit commit) {
-        writeObject(join(COMMITS_DIR, commit.getKey()), commit);
+        writeObject(join(REPO_PATH.COMMITS_DIR(), commit.getKey()), commit);
     }
 
     /**
@@ -83,7 +94,7 @@ public class Repository {
      * @param stage {@link Stage}
      */
     public static void saveStage(Stage stage) {
-        writeObject(STAGE, stage);
+        writeObject(REPO_PATH.STAGE(), stage);
     }
 
     /**
@@ -92,7 +103,7 @@ public class Repository {
      * @param fileName 文件名
      */
     public static void add(String fileName) {
-        File file = join(CWD, fileName);
+        File file = join(REPO_PATH.CWD(), fileName);
         // 文件不存在
         if (!file.exists()) {
             errorAndExit("File does not exist.");
@@ -121,7 +132,7 @@ public class Repository {
      */
     private static void createAndSaveBlob(String key, byte[] fileContent, String fileName) {
         Blob blob = new Blob(key, fileContent, fileName);
-        writeObject(join(BLOBS_DIR, key), blob);
+        writeObject(join(REPO_PATH.BLOBS_DIR(), key), blob);
     }
 
     /**
@@ -190,8 +201,8 @@ public class Repository {
      * @param commitKey  commitId
      */
     public static void saveBranchAndCheckout(String branchName, String commitKey) {
-        writeContents(HEAD, branchName);
-        writeContents(join(HEADS_DIR, branchName), commitKey);
+        writeContents(REPO_PATH.HEAD(), branchName);
+        writeContents(join(REPO_PATH.HEADS_DIR(), branchName), commitKey);
     }
 
     /**
@@ -201,7 +212,7 @@ public class Repository {
      * @param commitKey  commitId
      */
     private static void saveBranch(String branchName, String commitKey) {
-        writeContents(join(HEADS_DIR, branchName), commitKey);
+        writeContents(join(REPO_PATH.HEADS_DIR(), branchName), commitKey);
     }
 
     /**
@@ -210,7 +221,7 @@ public class Repository {
      * @return 暂存区信息
      */
     public static Stage getStage() {
-        return readObject(STAGE, Stage.class);
+        return readObject(REPO_PATH.STAGE(), Stage.class);
     }
 
     /**
@@ -220,7 +231,7 @@ public class Repository {
      */
     private static Commit getCurrCommit() {
         String currCommitId = getCurrCommitId();
-        return readObject(join(COMMITS_DIR, currCommitId), Commit.class);
+        return readObject(join(REPO_PATH.COMMITS_DIR(), currCommitId), Commit.class);
     }
 
     /**
@@ -235,14 +246,14 @@ public class Repository {
         }
         List<String> matchingCommits = findMatchingCommits(commitId);
         // 如果文件不止一个 或者 文件不存在
-        if (matchingCommits.size() != 1 || !join(COMMITS_DIR, matchingCommits.get(0)).exists()) {
+        if (matchingCommits.size() != 1 || !join(REPO_PATH.COMMITS_DIR(), matchingCommits.get(0)).exists()) {
             errorAndExit("No commit with that id exists.");
         }
-        return readObject(join(COMMITS_DIR, matchingCommits.get(0)), Commit.class);
+        return readObject(join(REPO_PATH.COMMITS_DIR(), matchingCommits.get(0)), Commit.class);
     }
 
     private static List<String> findMatchingCommits(String prefix) {
-        List<String> commitKeys = plainFilenamesIn(COMMITS_DIR);
+        List<String> commitKeys = plainFilenamesIn(REPO_PATH.COMMITS_DIR());
         List<String> res = new ArrayList<>();
         for (String commitKey : commitKeys) {
             if (commitKey.startsWith(prefix)) {
@@ -259,7 +270,7 @@ public class Repository {
      */
     private static String getCurrCommitId() {
         String currBranch = getCurrBranch();
-        return readContentsAsString(join(HEADS_DIR, currBranch));
+        return readContentsAsString(join(REPO_PATH.HEADS_DIR(), currBranch));
     }
 
     /**
@@ -268,7 +279,7 @@ public class Repository {
      * @return 当前分支名字
      */
     private static String getCurrBranch() {
-        return readContentsAsString(HEAD);
+        return readContentsAsString(REPO_PATH.HEAD());
     }
 
     /**
@@ -278,11 +289,11 @@ public class Repository {
      * @return Head Commit Key
      */
     private static String getBranch(String branchName) {
-        List<String> branches = plainFilenamesIn(HEADS_DIR);
+        List<String> branches = plainFilenamesIn(REPO_PATH.HEADS_DIR());
         if (branches == null || branches.stream().noneMatch(b -> b.equals(branchName))) {
             errorAndExit("No such branch exists.");
         }
-        return readContentsAsString(join(HEADS_DIR, branchName));
+        return readContentsAsString(join(REPO_PATH.HEADS_DIR(), branchName));
     }
 
     /**
@@ -291,7 +302,7 @@ public class Repository {
      * @param branchName 分支名
      */
     private static void checkBranchExistsAndThrow(String branchName) {
-        if (join(HEADS_DIR, branchName).exists()) {
+        if (join(REPO_PATH.HEADS_DIR(), branchName).exists()) {
             errorAndExit("A branch with that name already exists.");
         }
     }
@@ -302,7 +313,7 @@ public class Repository {
      * @param branchName 分支名
      */
     private static void checkBranchNotExistsAndThrow(String branchName) {
-        if (!join(HEADS_DIR, branchName).exists()) {
+        if (!join(REPO_PATH.HEADS_DIR(), branchName).exists()) {
             errorAndExit("A branch with that name does not exist.");
         }
     }
@@ -346,7 +357,7 @@ public class Repository {
      * global-log 全局日志
      */
     public static void globalLog() {
-        List<String> commitKeys = plainFilenamesIn(COMMITS_DIR);
+        List<String> commitKeys = plainFilenamesIn(REPO_PATH.COMMITS_DIR());
         for (String commitKey : commitKeys) {
             message("%s", getCommit(commitKey));
         }
@@ -358,7 +369,7 @@ public class Repository {
      * @param message 提交消息
      */
     public static void find(String message) {
-        List<String> commitKeys = plainFilenamesIn(COMMITS_DIR);
+        List<String> commitKeys = plainFilenamesIn(REPO_PATH.COMMITS_DIR());
         boolean exist = false;
         for (String commitKey : commitKeys) {
             if (getCommit(commitKey).getMessage().equals(message)) {
@@ -380,7 +391,7 @@ public class Repository {
 
         // === Branches ===
         String currBranch = getCurrBranch();
-        List<String> branches = plainFilenamesIn(HEADS_DIR);
+        List<String> branches = plainFilenamesIn(REPO_PATH.HEADS_DIR());
         message("=== Branches ===");
         for (String branch : branches) {
             if (branch.equals(currBranch)) {
@@ -410,7 +421,7 @@ public class Repository {
         // 文件路径基于字典序排序
         List<String> sortedFilePaths = trackedFiles.stream().sorted().collect(Collectors.toList());
         for (String filePath : sortedFilePaths) {
-            File file = join(CWD, filePath);
+            File file = join(REPO_PATH.CWD(), filePath);
             if (file.exists()) {
                 // 文件存在，基于sha1哈希值判断是否修改
                 String contentKey = sha1(readContents(file));
@@ -428,7 +439,7 @@ public class Repository {
 
         // === Untracked Files ===
         message("=== Untracked Files ===");
-        List<String> allFiles = plainFilenamesIn(CWD);
+        List<String> allFiles = plainFilenamesIn(REPO_PATH.CWD());
         for (String file : allFiles) {
             if (!trackedFiles.contains(file)
                     && !addFiles.contains(file)
@@ -464,7 +475,7 @@ public class Repository {
      * @param fileName
      */
     private static void writeBlobToCWD(Blob blob, String fileName) {
-        File file = join(CWD, fileName);
+        File file = join(REPO_PATH.CWD(), fileName);
         writeContents(file, blob.getContent());
     }
 
@@ -501,7 +512,7 @@ public class Repository {
         // 删除 from 存在的文件但是 to 不存在
         for (String fileName : from.getTree().keySet()) {
             if (!to.hasFile(fileName)) {
-                join(CWD, fileName).delete();
+                join(REPO_PATH.CWD(), fileName).delete();
             }
         }
         // 目标分支存在
@@ -523,7 +534,7 @@ public class Repository {
      */
     private static void checkUntrackedFiles(Commit from, Commit to) {
         for (String fileName : to.getTree().keySet()) {
-            if (!from.hasFile(fileName) && join(CWD, fileName).exists()) {
+            if (!from.hasFile(fileName) && join(REPO_PATH.CWD(), fileName).exists()) {
                 errorAndExit("There is an untracked file in the way; delete it, or add and commit it first.");
             }
         }
@@ -559,7 +570,7 @@ public class Repository {
             errorAndExit("Cannot remove the current branch.");
         }
         // delete
-        join(HEADS_DIR, branchName).delete();
+        join(REPO_PATH.HEADS_DIR(), branchName).delete();
     }
 
     /**
@@ -659,7 +670,7 @@ public class Repository {
                 // 6. unmodified in base but not present in target -> remove (staged for deletion)
                 else {
                     stage.removeFile(fileName);
-                    File file = join(CWD, fileName);
+                    File file = join(REPO_PATH.CWD(), fileName);
                     if (file.exists()) {
                         file.delete();
                     }
@@ -680,14 +691,14 @@ public class Repository {
                 // 处理冲突
                 message("Encountered a merge conflict.");
                 byte[] content = ("<<<<<<< HEAD\n" +
-                        (baseBlobKey == null ? "" : new String(readObject(join(BLOBS_DIR, baseBlobKey), Blob.class).getContent(), StandardCharsets.UTF_8)) +
+                        (baseBlobKey == null ? "" : new String(readObject(join(REPO_PATH.BLOBS_DIR(), baseBlobKey), Blob.class).getContent(), StandardCharsets.UTF_8)) +
                         "=======\n" +
-                        (targetBlobKey == null ? "" : new String(readObject(join(BLOBS_DIR, targetBlobKey), Blob.class).getContent(), StandardCharsets.UTF_8)) +
+                        (targetBlobKey == null ? "" : new String(readObject(join(REPO_PATH.BLOBS_DIR(), targetBlobKey), Blob.class).getContent(), StandardCharsets.UTF_8)) +
                         ">>>>>>>\n").getBytes(StandardCharsets.UTF_8);
                 String mergeBlobKey = sha1(content);
                 createAndSaveBlob(mergeBlobKey, content, fileName);
                 stage.addFile(fileName, mergeBlobKey);
-                writeContents(join(CWD, fileName), content);
+                writeContents(join(REPO_PATH.CWD(), fileName), content);
             }
         }
     }
@@ -736,10 +747,10 @@ public class Repository {
     }
 
     /**
-     * add-remote 添加远程分支
+     * add-remote 添加远程仓库
      *
-     * @param remoteName 远程分支名
-     * @param remotePath 远程分支路径
+     * @param remoteName 远程仓库名
+     * @param remotePath 远程仓库路径
      */
     public static void addRemote(String remoteName, String remotePath) {
         Remote remote = getRemote();
@@ -747,9 +758,9 @@ public class Repository {
     }
 
     /**
-     * rm-remote 删除远程分支
+     * rm-remote 删除远程仓库
      *
-     * @param remoteName 远程分支
+     * @param remoteName 远程仓库
      */
     public static void removeRemote(String remoteName) {
         Remote remote = getRemote();
@@ -762,7 +773,7 @@ public class Repository {
      * @return 远程分支对象
      */
     private static Remote getRemote() {
-        return readObject(REMOTE, Remote.class);
+        return readObject(REPO_PATH.REMOTE(), Remote.class);
     }
 
     /**
@@ -771,24 +782,6 @@ public class Repository {
      * @param remote 远程分支对象
      */
     public static void saveRemote(Remote remote) {
-        writeObject(REMOTE, remote);
-    }
-
-    /**
-     * 检查远程分支路径合法性
-     *
-     * @param remotePath 远程分支路径
-     * @return 远程分支路径(去除尾部/.gitlet)
-     */
-    private static String checkRemotePath(String remotePath) {
-        String end = SEPARATOR + ".gitlet";
-        if (!remotePath.endsWith(end)) {
-            errorAndExit("Not in an initialized Gitlet directory.");
-        }
-        File remoteDir = join(CWD, remotePath);
-        if (!remoteDir.exists()) {
-            errorAndExit("remote Path does not exists");
-        }
-        return remotePath.substring(0, remotePath.length() - end.length());
+        writeObject(REPO_PATH.REMOTE(), remote);
     }
 }

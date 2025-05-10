@@ -7,7 +7,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static gitlet.Constant.BLOBS_DIR;
 import static gitlet.Utils.*;
 
 /**
@@ -152,7 +151,7 @@ public class Commit implements Serializable {
     public Blob getBlob(String fileName) {
         String blobKey = getBlobKey(fileName);
         if (blobKey == null) return null;
-        return readObject(join(BLOBS_DIR, blobKey), Blob.class);
+        return readObject(join(Repository.REPO_PATH.BLOBS_DIR(), blobKey), Blob.class);
     }
 
     @Override
