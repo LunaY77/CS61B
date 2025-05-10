@@ -66,4 +66,19 @@ public interface Constant {
      * 当前头指针
      */
     File HEAD = join(GITLET_DIR, "HEAD");
+
+    /**
+     * REMOTE 对象
+     */
+    File REMOTE = join(GITLET_DIR, "REMOTE");
+
+    /**
+     * 远程分支文件夹(remotes)
+     */
+    File REMOTES_DIR = join(REFS_DIR, "remotes");
+
+    /**
+     * 远程分支头部
+     */
+    File FETCH_HEAD = join(GITLET_DIR, "FETCH_HEAD");
 }

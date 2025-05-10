@@ -14,7 +14,7 @@ import static gitlet.Utils.*;
  * Represents a gitlet commit object.
  * does at a high level.
  *
- * @author TODO
+ * @author 苍镜月
  */
 public class Commit implements Serializable {
     /**

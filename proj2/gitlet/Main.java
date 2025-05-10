@@ -1,5 +1,7 @@
 package gitlet;
 
+import java.io.File;
+
 import static gitlet.Constant.GITLET_DIR;
 import static gitlet.Utils.*;
 
@@ -62,9 +64,33 @@ public class Main {
             case "merge":
                 merge(args);
                 break;
+            case "add-remote":
+                addRemote(args);
+                break;
+            case "rm-remote":
+                removeRemote(args);
+                break;
             default:
                 message("No command with that name exists.");
         }
+    }
+
+    /**
+     * rm-remote
+     */
+    private static void removeRemote(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 2);
+        Repository.removeRemote(args[1]);
+    }
+
+    /**
+     * add-remote
+     */
+    private static void addRemote(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 3);
+        Repository.addRemote(args[1], args[2]);
     }
 
     /**

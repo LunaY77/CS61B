@@ -43,10 +43,20 @@ public class Repository {
         // 创建 refs 文件夹及其子文件夹
         mkdir(REFS_DIR);
         mkdir(HEADS_DIR);
+        // 创建 Remote 对象
+        initRemote();
         // 创建 stage 文件
         initStage();
         // 初始提交，初始化分支
         initialCommitAndBranch();
+    }
+
+    /**
+     * 初始化 Remote 对象
+     */
+    private static void initRemote() {
+        Remote remote = new Remote();
+        saveRemote(remote);
     }
 
     /**
@@ -694,5 +704,62 @@ public class Repository {
             }
         }
         return map;
+    }
+
+    /**
+     * add-remote 添加远程分支
+     *
+     * @param remoteName 远程分支名
+     * @param remotePath 远程分支路径
+     */
+    public static void addRemote(String remoteName, String remotePath) {
+        Remote remote = getRemote();
+        remote.addRemote(remoteName, remotePath);
+    }
+
+    /**
+     * rm-remote 删除远程分支
+     *
+     * @param remoteName 远程分支
+     */
+    public static void removeRemote(String remoteName) {
+        Remote remote = getRemote();
+        remote.removeRemote(remoteName);
+    }
+
+    /**
+     * 获取远程分支对象
+     *
+     * @return 远程分支对象
+     */
+    private static Remote getRemote() {
+        return readObject(REMOTE, Remote.class);
+    }
+
+    /**
+     * 保存远程分支对象
+     *
+     * @param remote 远程分支对象
+     */
+    public static void saveRemote(Remote remote) {
+        writeObject(REMOTE, remote);
+    }
+
+    /**
+     * 检查远程分支路径合法性
+     *
+     * @param remotePath 远程分支路径
+     * @return 远程分支路径(去除尾部/.gitlet)
+     */
+    private static String checkRemotePath(String remotePath) {
+        String end = SEPARATOR + ".gitlet";
+        if (!remotePath.endsWith(end)) {
+            errorAndExit("Not in an initialized Gitlet directory.");
+        }
+        File remoteDir = join(CWD, remotePath);
+        if (!remoteDir.exists()) {
+            errorAndExit("remote Path does not exists");
+        }
+        return remotePath.substring(0, remotePath.length() - end.length());
     }
 }

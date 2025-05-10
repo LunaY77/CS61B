@@ -26,6 +26,8 @@ class Utils {
      */
     static final int UID_LENGTH = 40;
 
+    static final String SEPARATOR = File.separator;
+
     /* SHA-1 HASH VALUES. */
 
     static String sha1(File file) {
