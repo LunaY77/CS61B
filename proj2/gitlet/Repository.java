@@ -619,4 +619,15 @@ public class Repository {
         });
         REPO_PATH.saveRemoteBranch(remoteName, remoteBranchName, remoteCommit.getKey());
     }
+
+    /**
+     * pull = fetch + merge
+     *
+     * @param remoteName       远程仓库名
+     * @param remoteBranchName 远程分支名
+     */
+    public static void pull(String remoteName, String remoteBranchName) {
+        fetch(remoteName, remoteBranchName);
+        merge(remoteName + "/" + remoteBranchName);
+    }
 }

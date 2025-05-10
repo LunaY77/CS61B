@@ -73,9 +73,21 @@ public class Main {
             case "fetch":
                 fetch(args);
                 break;
+            case "pull":
+                pull(args);
+                break;
             default:
                 message("No command with that name exists.");
         }
+    }
+
+    /**
+     * pull
+     */
+    private static void pull(String[] args) {
+        checkRepositoryExists();
+        checkOperands(args, 3);
+        Repository.pull(args[1], args[2]);
     }
 
     /**

@@ -220,7 +220,7 @@ public class RepositoryPath implements Serializable {
                 errorAndExit("No such branch exists.");
             }
             return readContentsAsString(join(HEADS_DIR(), branchName));
-        // 远程分支
+            // 远程分支
         } else {
             return getRemoteBranchNotNull(split[0], split[1]);
         }
@@ -229,7 +229,7 @@ public class RepositoryPath implements Serializable {
     /**
      * 根据远程仓库名和远程分支名获取分支(不允许为空)
      *
-     * @param remoteName 远程仓库名
+     * @param remoteName       远程仓库名
      * @param remoteBranchName 远程分支名
      * @return Head Commit Key
      */
@@ -276,8 +276,15 @@ public class RepositoryPath implements Serializable {
      * @param branchName 分支名
      */
     public void checkBranchNotExistsAndThrow(String branchName) {
-        if (!join(HEADS_DIR(), branchName).exists()) {
-            errorAndExit("A branch with that name does not exist.");
+        String[] split = branchName.split("/");
+        if (split.length == 1) {
+            if (!join(HEADS_DIR(), branchName).exists()) {
+                errorAndExit("A branch with that name does not exist.");
+            }
+        } else {
+            if (!join(REMOTES_DIR(), split[0], split[1]).exists()) {
+                errorAndExit("A branch with that name does not exist.");
+            }
         }
     }
 
@@ -314,7 +321,7 @@ public class RepositoryPath implements Serializable {
         // 本地分支
         if (split.length == 1) {
             writeContents(join(HEADS_DIR(), branchName), commitKey);
-        // 远程分支
+            // 远程分支
         } else {
             saveRemoteBranch(split[0], split[1], commitKey);
         }
@@ -404,6 +411,7 @@ public class RepositoryPath implements Serializable {
 
     /**
      * 保存远程分支
+     *
      * @param remoteName
      * @param remoteBranchName
      * @param key
